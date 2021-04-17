@@ -2,9 +2,10 @@ import sys, os, requests, time
 import datetime as dt
 import yfinance as yf
 import numpy as np
-#import time
+import multiprocessing
+from functools import partial
 # Author: Kevin Hare
-# Last Updated: 4/16/2021
+# Last Updated: 4/17/2021
 # Purpose: Save yfinance data and convert to sequence
 
 def find_last_date():
@@ -44,7 +45,7 @@ def read_tickers(which=None):
     print(tickers)
     return tickers
 
-def process_data(tickers, datapath, seq_len=60, target_min=5, save=True):
+def process_tickers(tickers, datapath, seq_len=60, target_min=5, save=True):
     """Read stock data, convert to sequence, and save out
     Inputs
     ------
@@ -61,38 +62,84 @@ def process_data(tickers, datapath, seq_len=60, target_min=5, save=True):
             end_day = day + dt.timedelta(days=1)
             data = yf.download(t, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
             day += dt.timedelta(days=1)
-    print((time.time()-t1)/60)
+
+    
             # Need to except weekends
             if len(data) == 0:
                 continue
 
             # Generate sequences & save
-            #s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
-            #for i, v in enumerate(range(target_min, len(data)-seq_len)):
-            #    if i == 0:
-            #        x = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
-            #    else:
-            #        z = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
-            #        x = np.concatenate((x, z), axis=0)
+            s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
+            for i, v in enumerate(range(target_min, len(data)-seq_len)):
+                if i == 0:
+                    x = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
+                else:
+                    z = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
+                    x = np.concatenate((x, z), axis=0)
             
-            #y = data['Close'].values[seq_len + target_min:]
-            #try:
-            #    os.mkdir( datapath + 'raw_seq')
-            #except:
-            #    pass
+            y = data['Close'].values[seq_len + target_min:]
+            try:
+                os.mkdir( datapath + 'raw_seq')
+            except:
+                pass
 
-            #np.savez(datapath + 'raw_seq/' + t + '_' + str(day) + '.npz', x=x, y=y)
+            np.savez(datapath + 'raw_seq/' + t + '_' + str(day) + '.npz', x=x, y=y)
+    # Return processing time
+    return time.time()-t1
 
-def process_data_alt(tickers):
-    t1 = time.time()
+def process_ticker(t, datapath, seq_len=60, target_min=5, save=True):
+    """Processes stock price data for a single ticker
+    Inputs
+    ------
+    t: ticker symbols to iterate over, required
+    datapath: path to data storage files
+    seq_len: (optional) length of sequence in minutes
+    target_min: (optional) target minutes ahead (default set at 5 min)"""
     today = dt.date.today()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
+    day = last_date
     while day < today:
         end_day = day + dt.timedelta(days=1)
-        data = yf.download(tickers, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
+        data = yf.download(t, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
         day += dt.timedelta(days=1)
 
-    print((time.time()-t1)/60))
+            # Need to except weekends
+            if len(data) == 0:
+                continue
+
+            # Generate sequences & save
+            s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
+            for i, v in enumerate(range(target_min, len(data)-seq_len)):
+                if i == 0:
+                    x = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
+                else:
+                    z = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
+                    x = np.concatenate((x, z), axis=0)
+            
+            y = data['Close'].values[seq_len + target_min:]
+            try:
+                os.mkdir( datapath + 'raw_seq')
+            except:
+                pass
+            np.savez(datapath + 'raw_seq/' + t + '_' + str(day) + '.npz', x=x, y=y)
+
+def process_data_multi(tickers, num_proc=None, datapath='./', seq_len=60, target_min=5, save=True):
+    """Applies multiprocessing to tickers fed into a ticker list, wraps the process ticker, 
+    uses functools.partial() to apply closure pattern to single ticker processing
+
+    Note: Used functools.partial() rather than self-closure for optimization purposes
+    
+    Returns
+    -------
+    proc_time: time in seconds to perform processing"""
+    t1 = time.time()
+    p = multiprocessing.Pool(num_proc)
+    mapfunc = partial(process_ticker, datapath=datapath, seq_len=seq_len, target_min=target_min, save=True)
+    p.map(mapfunc, tickers)
+
+    proc_time = (time.time()-t1)
+    return proc_time
+
 
 def combine_seqs(datapath):
     """Combines sequences"""
@@ -113,5 +160,5 @@ if __name__ == '__main__':
     tickers = read_tickers('MSFT')
     datapath = './'
     process_data(tickers, datapath)
-    process_data_alt(tickers)
+    process_data_multi(tickers, num_proc=None, datapath='./', seq_len=60, target_min=5, save=True)
     #combine_seqs(datapath)
