@@ -2,7 +2,8 @@ import sys, os, requests, time
 import datetime as dt
 import yfinance as yf
 import numpy as np
-#import time
+import multiprocessing
+from functools import partial
 # Author: Kevin Hare
 # Last Updated: 4/16/2021
 # Purpose: Save yfinance data and convert to sequence
@@ -61,10 +62,11 @@ def process_data(tickers, datapath, seq_len=60, target_min=5, save=True):
             end_day = day + dt.timedelta(days=1)
             data = yf.download(t, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
             day += dt.timedelta(days=1)
-    print((time.time()-t1)/60)
+
+    
             # Need to except weekends
-            if len(data) == 0:
-                continue
+            #if len(data) == 0:
+            #    continue
 
             # Generate sequences & save
             #s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
@@ -82,17 +84,37 @@ def process_data(tickers, datapath, seq_len=60, target_min=5, save=True):
             #    pass
 
             #np.savez(datapath + 'raw_seq/' + t + '_' + str(day) + '.npz', x=x, y=y)
+    print((time.time()-t1)/60)
+
+def process_data_single(t, datapath, seq_len=60, target_min=5, save=True):
+    today = dt.date.today()
+    last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
+    day = last_date
+    while day < today:
+        end_day = day + dt.timedelta(days=1)
+        data = yf.download(t, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
+        day += dt.timedelta(days=1)
+
+def process_data_multi(tickers, num_proc=None, datapath='./', seq_len=60, target_min=5, save=True):
+    t1 = time.time()
+    p = multiprocessing.Pool(num_proc)
+    mapfunc = partial(process_data_single, datapath=datapath, seq_len=seq_len, target_min=target_min, save=True)
+    p.map(mapfunc, tickers)
+    print((time.time()-t1)/60)
+
 
 def process_data_alt(tickers):
     t1 = time.time()
     today = dt.date.today()
+    
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
+    day = last_date
     while day < today:
         end_day = day + dt.timedelta(days=1)
         data = yf.download(tickers, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
         day += dt.timedelta(days=1)
 
-    print((time.time()-t1)/60))
+    print((time.time()-t1)/60)
 
 def combine_seqs(datapath):
     """Combines sequences"""
@@ -110,8 +132,9 @@ def combine_seqs(datapath):
     np.savez(datapath + 'training_data.npz', x_train=x_data, y_train=y_data)      
             
 if __name__ == '__main__':
-    tickers = read_tickers('MSFT')
+    tickers = read_tickers('all')
     datapath = './'
-    process_data(tickers, datapath)
-    process_data_alt(tickers)
+    #process_data(tickers[:20], datapath)
+    process_data_multi(tickers[:20], num_proc=None, datapath='./', seq_len=60, target_min=5, save=True)
+    process_data_alt(tickers[:20])
     #combine_seqs(datapath)
