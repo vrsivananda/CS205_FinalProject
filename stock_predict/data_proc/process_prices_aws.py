@@ -158,6 +158,7 @@ def combine_seqs(datapath):
 if __name__ == '__main__':
     tickers = read_tickers('all')
     datapath = './'
-    process_tickers(tickers[:20], datapath)
-    process_data_multi(tickers[:20], num_proc=None, datapath='./', seq_len=60, target_min=5, save=True)
-    #combine_seqs(datapath)
+    #process_tickers(tickers[:20], datapath)
+    proctime = process_data_multi(tickers[:20], num_proc=None, datapath='./', seq_len=60, target_min=5, save=True)
+    print(proctime)
+    combine_seqs(datapath)

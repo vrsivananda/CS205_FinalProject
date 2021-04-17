@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 def gen_times(tickers, proc_num_list):
     times = []
     for i, proc in enumerate(proc_num_list):
-        t = process_data_multi(tickers, num_proc=None, datapath='./', seq_len=60, target_min=5, save=True)
+        t = process_data_multi(tickers, num_proc=proc, datapath='./', seq_len=60, target_min=5, save=True)
         times.append(t)
     return times
 
