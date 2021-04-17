@@ -22,8 +22,10 @@ def find_last_date():
             l = f.read().strip()
             return l
 
-def read_tickers():
+def read_tickers(which=None):
     """Reads ticker list"""
+    if which != "all":
+        return which.split()
     url = 'https://pkgstore.datahub.io/core/s-and-p-500-companies/'+\
         'constituents_json/data/87cab5b5abab6c61eafa6dfdfa068a42/constituents_json.json'
     files = os.listdir()
@@ -42,18 +44,21 @@ def read_tickers():
     print(tickers)
     return tickers
 
-def process_data(tickers, datapath, seq_len=60, save=True):
+def process_data(tickers, datapath, seq_len=60, target_min=5, save=True):
     """Read stock data, convert to sequence, and save out
     Inputs
     ------
-    tickers: iterable, ticker symbols to iterate over, required"""
+    tickers: iterable, ticker symbols to iterate over, required
+    datapath: path to data storage files
+    seq_len: (optional) length of sequence in minutes
+    target_min: (optional) target minutes ahead (default set at 5 min)"""
     today = dt.date.today()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
     for t in tickers:
         day = last_date
         while day < today:
             end_day = day + dt.timedelta(days=1)
-            data = yf.download(t, period='1d', interval='1m', start=str(day), end=str(end_day))
+            data = yf.download(t, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
             day += dt.timedelta(days=1)
 
             # Need to except weekends
@@ -61,25 +66,40 @@ def process_data(tickers, datapath, seq_len=60, save=True):
                 continue
 
             # Generate sequences & save
-            s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
-
+            #s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
+            for i, v in enumerate(range(target_min, len(data)-seq_len)):
+                if i == 0:
+                    x = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
+                else:
+                    z = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
+                    x = np.concatenate((x, z), axis=0)
+            
+            y = data['Close'].values[seq_len + target_min:]
             try:
                 os.mkdir( datapath + 'raw_seq')
             except:
                 pass
 
-            np.save(datapath + 'raw_seq/' + t + '_' + str(day) + '.npy', s)
+            np.savez(datapath + 'raw_seq/' + t + '_' + str(day) + '.npz', x=x, y=y)
+
+def combine_seqs(datapath):
+    """Combines sequences"""
+    # NON SPARK! WORK IN PROGRESS
+    files = os.listdir(datapath + 'raw_seq/')
+    for i, fn in enumerate(files):
+        if i == 0:
+            npfiles = np.load(datapath + 'raw_seq/' + fn)
+            x_data, y_data = npfiles['x'], npfiles['y']
+        else:
+            d_add = np.load(datapath + 'raw_seq/' + fn)
+            x_add, y_add = d_add['x'], d_add['y']
+            x_data = np.concatenate((x_data, x_add), axis=0)
+            y_data = np.concatenate((y_data, y_add), axis=0)
+    np.savez(datapath + 'training_data.npz', x_train=x_data, y_train=y_data)      
             
-            
-
-
-
-
-
-
-
 if __name__ == '__main__':
-    tickers = ['MSFT']
+    tickers = read_tickers('MSFT')
+    print(tickers)
     datapath = '../../data/'
     process_data(tickers, datapath)
-
+    combine_seqs(datapath)
