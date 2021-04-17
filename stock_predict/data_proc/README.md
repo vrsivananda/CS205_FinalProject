@@ -6,7 +6,7 @@ Scripts to process data. Note that output data will be put to `../data/` directo
 
 #### Instructions
 
-The data processing can be quite extensive and is generally limited by access to `yfinance`. Moreover, while the data is pulled for many stocks, our sequence generation algorithm is embarrassingly parallel; each ticker-day combination can be processed independently. One final note: the data has been stored in an S3 bucket for convenience, but is of substantial size. Therefore, default `process_data_local.py` script processes only a single ticker for debugging purposes.
+The data processing can be quite extensive and is generally limited by access to `yfinance`. Moreover, while the data is pulled for many stocks, our sequence generation algorithm is embarrassingly parallel; each ticker-day combination can be processed independently. One final note: the data has been stored in an S3 bucket for convenience, but is of substantial size. Therefore, default `process_prices.py` script processes only a single ticker for debugging purposes.
 
 ##### Locally
 
@@ -22,10 +22,10 @@ To be compatible across both local and cloud installations, all commands assume 
 ###### Instructions
 
 1. Connect to EC2 instance
-2. Transfer `setup_aws_environment.sh`, `process_data_aws.sh`, and `process_data.py` shell scripts
+2. Transfer `processing_pipeline.sh`, `process_prices_aws.py`, `requirements.txt`and `last_date` files
 3. Execute:
 ```bash
-./setup_environment.sh
+./processing_pipeline.sh
 ```
 4. Check connection with AWS S3 bucket:
 	- Can be verified with `aws s3 ls`
