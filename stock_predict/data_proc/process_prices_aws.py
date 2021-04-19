@@ -68,7 +68,7 @@ def process_tickers(tickers, datapath, seq_len=60, target_min=5, save=True):
                 continue
 
             # Generate sequences & save
-            s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
+            #s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
             for i, v in enumerate(range(target_min, len(data)-seq_len)):
                 if i == 0:
                     x = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
@@ -97,6 +97,7 @@ def process_ticker(t, datapath, seq_len=60, target_min=5, save=True):
     today = dt.date.today()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
     day = last_date
+    day_ct = 0
     while day < today:
         end_day = day + dt.timedelta(days=1)
         data = yf.download(t, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
@@ -107,7 +108,7 @@ def process_ticker(t, datapath, seq_len=60, target_min=5, save=True):
             continue
 
         # Generate sequences & save
-        s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
+        #s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
         for i, v in enumerate(range(target_min, len(data)-seq_len)):
             if i == 0:
                 x = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
