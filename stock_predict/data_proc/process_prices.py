@@ -175,8 +175,9 @@ if __name__ == '__main__':
     t1 = time.time()
     tickers = read_tickers('all')
     datapath = './'
-    #process_tickers(tickers[:20], datapath)
-    proctime = process_data_multi(tickers[:20], num_proc=8, datapath='./', seq_len=60, target_min=5, save=True)
+    #process_tickers(tickers[:5], datapath)
+    yf.download(tickers, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
+    #proctime = process_data_multi(tickers[:20], num_proc=8, datapath='./', seq_len=60, target_min=5, save=True)
     #print(proctime)
-    combine_seqs(datapath)
-    print(time.time()-t1)
+    #combine_seqs(datapath)
+    #print(time.time()-t1)
