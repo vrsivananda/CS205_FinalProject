@@ -180,7 +180,7 @@ def combine_seqs(datapath):
     np.savez(datapath + 'training_data.npz', x_train=x_data, y_train=y_data)#, allow_pickle=True).
 
 
-def combine_sequences(input_path='./raw_seq/', output_path='./'):
+def combine_seqs_spark(input_path='./raw_seq/', output_path='./'):
     """Combines sequences into a Spark DataFrame structure; will output files to 
     parquet format directly at output_path
 
@@ -194,8 +194,13 @@ def combine_sequences(input_path='./raw_seq/', output_path='./'):
     -----
     None
     """
+    conf = SparkConf().setMaster('local').setAppName('combineSeqs')
+    spark = SparkSession.builder.config(conf = conf).getOrCreate()
+
     # Collect files and instantiate spark instance
     files = os.listdir(input_path)
+
+    print(files) 
 
 
 
@@ -206,8 +211,8 @@ if __name__ == '__main__':
     tickers = read_tickers('all')
     datapath = './'
     #process_tickers(tickers[:5], datapath)
-    proctime = process_data_multi(tickers[:3], num_proc=8, datapath='./', seq_len=60, target_min=5, save=True)
+    #proctime = process_data_multi(tickers[:3], num_proc=8, datapath='./', seq_len=60, target_min=5, save=True)
     #print(proctime)
     #combine_seqs(datapath)
-    #print(time.time()-t1)
-    print('HELLO')
+    combine_seqs_spark()
+    print(round(time.time()-t1, ndigits=2))
