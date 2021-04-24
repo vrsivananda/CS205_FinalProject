@@ -177,7 +177,29 @@ def combine_seqs(datapath):
             y_data = np.concatenate((y_data, y_add), axis=0)
         if i == 20:
             break
-    np.savez(datapath + 'training_data.npz', x_train=x_data, y_train=y_data)#, allow_pickle=True)
+    np.savez(datapath + 'training_data.npz', x_train=x_data, y_train=y_data)#, allow_pickle=True).
+
+
+def combine_sequences(input_path='./raw_seq/', output_path='./'):
+    """Combines sequences into a Spark DataFrame structure; will output files to 
+    parquet format directly at output_path
+
+    Inputs
+    -----
+    input_path (str): string path from current directory to location of data to process;
+                        optional; assumes default path of '/raw_seq'
+    output_path (str): path from current directory to location of outputs, defaults to current directory
+
+    Returns
+    -----
+    None
+    """
+    # Collect files and instantiate spark instance
+    files = os.listdir(input_path)
+
+
+
+
             
 if __name__ == '__main__':
     t1 = time.time()
@@ -188,3 +210,4 @@ if __name__ == '__main__':
     #print(proctime)
     #combine_seqs(datapath)
     #print(time.time()-t1)
+    print('HELLO')
