@@ -200,6 +200,14 @@ def combine_seqs_spark(input_path='./raw_seq/', output_path='./'):
     # Collect files and instantiate spark instance
     files = os.listdir(input_path)
 
+    # Read files and convert to DataFrame
+    for f in files:
+        # Read file as RDD
+        # Convert data to DataFrame (rows correspond to sequences;
+        # each column will be a list of length 60)
+        # Append to original dataframe
+        pass
+
     print(files) 
 
 
