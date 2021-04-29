@@ -1,0 +1,4 @@
+numpy==1.19.2
+yfinance
+matplotlib
+pyspark==3.0.0
