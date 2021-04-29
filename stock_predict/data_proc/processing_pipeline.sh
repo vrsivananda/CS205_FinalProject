@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## Executes processing pipeline
-python3 process_prices.py 4 > failed_download_messages
+python3 process_prices.py $1 > failed_download_messages
 tail -n 2 failed_download_messages > processing_timing
 cat processing_timing
 rm failed_download_messages

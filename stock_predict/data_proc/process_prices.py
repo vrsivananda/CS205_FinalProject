@@ -103,14 +103,16 @@ def process_tickers(tickers, datapath, seq_len=60, target_min=5, feats=['Close',
     # Return processing time
     return time.time()-t1
 
-def process_ticker(t, datapath, last_date, seq_len=60, target_min=5, save=True):
+def process_ticker(t, datapath, last_date, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True):
     """Processes stock price data for a single ticker
-    Inputs
-    ------
-    t: ticker symbols to iterate over, required
-    datapath: path to data storage files
-    seq_len: (optional) length of sequence in minutes
-    target_min: (optional) target minutes ahead (default set at 5 min)"""
+    Args
+        t: ticker symbols to iterate over, required
+        datapath: path to data storage files
+        seq_len: (optional) length of sequence in minutes
+        target_min: (optional) target minutes ahead (default set at 5 min)
+    Returns
+        None
+    """
     today = dt.date.today()
     day = last_date
     day_ct = 0
@@ -129,9 +131,9 @@ def process_ticker(t, datapath, last_date, seq_len=60, target_min=5, save=True):
         #s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
         for i, v in enumerate(range(target_min, len(data)-seq_len)):
             if i == 0:
-                x = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
+                x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
             else:
-                z = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
+                z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
                 x = np.concatenate((x, z), axis=0)
         
         y = data['Close'].values[seq_len + target_min:]
@@ -162,7 +164,8 @@ def process_data_multi(tickers, num_proc=None, datapath='./', seq_len=60, target
     # Use functools.partial method to create mapping function
     # for non-simple functions
     # See more here: https://docs.python.org/3/library/functools.html
-    mapfunc = partial(process_ticker, datapath=datapath, last_date=last_date, seq_len=seq_len, target_min=target_min, save=True)
+    mapfunc = partial(process_ticker, datapath=datapath, last_date=last_date, seq_len=seq_len, 
+                        target_min=target_min, feats=['Close', 'Volume'], save=True)
     p.map(mapfunc, tickers)
 
     # Ensure that process has closed and joined before proceeding
