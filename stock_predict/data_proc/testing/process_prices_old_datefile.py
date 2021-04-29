@@ -14,21 +14,26 @@ import re
 # Last Updated: 4/29/2021
 # Purpose: Save yfinance data and convert to sequence
 
-def find_last_date(interval='1m'):
-    """Returns date 30 days prior, as this will be the only available
-    date for pulling data
-    Args:
-        interval: interval to pull data at; will correspond 
-                  mechanically to the last day available
-    Returns:
-        ld: date in string form"""
-    int2day = {'1m': 30, '2m': 60}
-    ld = dt.date.today() - dt.timedelta(days=int2day[interval])
-    # Read out day for reference
-    with open('last_date', 'w') as f:
-        f.write(str(ld))
-        f.close()
-    return str(ld)
+def find_last_date():
+    """Returns last date stock prices were read to train
+    data and load most recent entries"""
+    files = os.listdir()
+    if 'last_date' not in files:
+        l = dt.date.today()
+        with open('last_date', 'a') as f:
+            f.write(str(l))
+            f.close()
+    else:
+        with open('last_date', 'r') as f:
+            l = f.read().strip()
+            f.close()
+        # Confirm within last 30 days, else update in file
+        if (dt.date.today() - dt.timedelta(days=30)) > dt.datetime.strptime(l, "%Y-%m-%d").date():
+            l = dt.date.today() - dt.timedelta(days=30)
+            with open('last_date', 'w') as f2:
+                f2.write(str(l))
+                f2.close()
+    return str(l)
 
 def read_tickers(which=None):
     """Reads ticker list"""
@@ -52,18 +57,14 @@ def read_tickers(which=None):
 
     return tickers
 
-def process_tickers(tickers, datapath, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True):
+def process_tickers(tickers, datapath, seq_len=60, target_min=5, save=True):
     """Read stock data, convert to sequence, and save out
-    Args
-        tickers: iterable, ticker symbols to iterate over, required
-        datapath: path to data storage files
-        seq_len: (optional) length of sequence in minutes
-        target_min: (optional) target minutes ahead (default set at 5 min)
-        feats: (optional) features to keep from sequence. Due to high resolution nature
-                of the problem, this defaults to only close & volume
-    Returns:
-        processing time, in seconds
-    """
+    Inputs
+    ------
+    tickers: iterable, ticker symbols to iterate over, required
+    datapath: path to data storage files
+    seq_len: (optional) length of sequence in minutes
+    target_min: (optional) target minutes ahead (default set at 5 min)"""
     t1 = time.time()
     today = dt.date.today()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
@@ -83,9 +84,9 @@ def process_tickers(tickers, datapath, seq_len=60, target_min=5, feats=['Close',
             #s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
             for i, v in enumerate(range(target_min, len(data)-seq_len)):
                 if i == 0:
-                    x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+                    x = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
                 else:
-                    z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+                    z = np.expand_dims(data.values[i:i+seq_len, :], axis=0)
                     x = np.concatenate((x, z), axis=0)
             
             y = data['Close'].values[seq_len + target_min:]
@@ -156,18 +157,9 @@ def process_data_multi(tickers, num_proc=None, datapath='./', seq_len=60, target
     proc_time: time in seconds to perform processing"""
     t1 = time.time()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
-    # Assign pool size of the number of processes
     p = multiprocessing.Pool(num_proc)
-
-    # Use functools.partial method to create mapping function
-    # for non-simple functions
-    # See more here: https://docs.python.org/3/library/functools.html
     mapfunc = partial(process_ticker, datapath=datapath, last_date=last_date, seq_len=seq_len, target_min=target_min, save=True)
     p.map(mapfunc, tickers)
-
-    # Ensure that process has closed and joined before proceeding
-    p.close()
-    p.join()
 
     proc_time = (time.time()-t1)
     return proc_time
@@ -178,6 +170,7 @@ def combine_seqs(datapath):
     # NON SPARK! WORK IN PROGRESS
     files = os.listdir(datapath + 'raw_seq/')
     for i, fn in enumerate(files):
+        print(i)
         if i == 0:
             npfiles = np.load(datapath + 'raw_seq/' + fn, allow_pickle=True)
             x_data, y_data = npfiles['x'], npfiles['y']
@@ -186,15 +179,19 @@ def combine_seqs(datapath):
             x_add, y_add = d_add['x'], d_add['y']
             x_data = np.concatenate((x_data, x_add), axis=0)
             y_data = np.concatenate((y_data, y_add), axis=0)
+        if i == 20:
+            break
     np.savez(datapath + 'training_data.npz', x_train=x_data, y_train=y_data, allow_pickle=True)
             
 if __name__ == '__main__':
     t1 = time.time()
     tickers = read_tickers('all')
     datapath = './'
-    if sys.argv[1] != 'all':
-        tickers = tickers[:int(sys.argv[1])]
-    proctime = process_data_multi(tickers, num_proc=8, datapath='./', seq_len=60, target_min=5, save=True)
-    print(f'Processing time: {proctime:0.2f}')
-    combine_seqs(datapath)
-    print(f'Total time: {time.time()-t1:0.2f}')
+    #process_tickers(tickers[:5], datapath)
+    if sys.argv[1] == 'all':
+        pass
+        #
+    proctime = process_data_multi(tickers[:3], num_proc=8, datapath='./', seq_len=60, target_min=5, save=True)
+    #print(f'Processing time: {proctime}')
+    #combine_seqs(datapath)
+    print(time.time()-t1)
