@@ -186,7 +186,7 @@ def combine_seqs(datapath):
             x_add, y_add = d_add['x'], d_add['y']
             x_data = np.concatenate((x_data, x_add), axis=0)
             y_data = np.concatenate((y_data, y_add), axis=0)
-    np.savez(datapath + 'training_data.npz', x_train=x_data, y_train=y_data, allow_pickle=True)
+    np.savez_compressed(datapath + 'training_data.npz', x_train=x_data, y_train=y_data)
             
 if __name__ == '__main__':
     t1 = time.time()
