@@ -145,7 +145,7 @@ def process_ticker(t, datapath, last_date, seq_len=60, target_min=5, feats=['Clo
         os.mkdir( datapath + 'raw_seq')
     except:
         pass
-    np.savez(datapath + 'raw_seq/' + t + '.npz', x=xs, y=ys)
+    np.savez_compressed(datapath + 'raw_seq/' + t + '.npz', x=xs, y=ys)
 
 def process_data_multi(tickers, num_proc=None, datapath='./', seq_len=60, target_min=5, save=True):
     """Applies multiprocessing to tickers fed into a ticker list, wraps the process ticker, 
