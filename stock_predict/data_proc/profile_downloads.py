@@ -2,6 +2,8 @@ import numpy as np
 import yfinance as yf
 from process_prices import  process_tickers, read_tickers, find_last_date
 import datetime as dt
+import sys
+sys.path.append('../')
 
 
 def pull_data_together(tickers):
