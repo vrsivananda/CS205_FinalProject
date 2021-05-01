@@ -3,15 +3,18 @@ import datetime as dt
 import yfinance as yf
 import numpy as np
 import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
+import threading
 from functools import partial
-from pyspark import SparkConf, SparkContext
-from pyspark.sql import SQLContext, SparkSession
-from pyspark.sql.functions import split as ps_split
-from pyspark.sql.functions import when
-from pyspark.sql.functions import collect_list
 import re
+#from pyspark import SparkConf, SparkContext
+#from pyspark.sql import SQLContext, SparkSession
+#from pyspark.sql.functions import split as ps_split
+#from pyspark.sql.functions import when
+#from pyspark.sql.functions import collect_list
+
 # Author: Kevin Hare
-# Last Updated: 4/29/2021
+# Last Updated: 5/1/2021
 # Purpose: Save yfinance data and convert to sequence
 
 def find_last_date(interval='1m'):
@@ -52,6 +55,29 @@ def read_tickers(which=None):
 
     return tickers
 
+
+def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']):
+    """Given a subset of data for a particular ticker and date, 
+    will return sequences of the appropriate length
+    
+    Args
+        data: subset dataframe
+        target_min (optional): target minutes ahead of end of sequence
+        seq_len (optional): sequence length to consider
+        feats (optional): list of features to keep
+    Returns
+        seqs: numpy array of sequences (n_seqs, seq_len, len(feats))
+    """
+    for i, v in enumerate(range(target_min, len(data)-seq_len)):
+        if i == 0:
+            x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+        else:
+            z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+            x = np.concatenate((x, z), axis=0)
+    return x
+
+
+
 def process_tickers(tickers, datapath, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True):
     """Read stock data, convert to sequence, and save out
     Args
@@ -81,12 +107,12 @@ def process_tickers(tickers, datapath, seq_len=60, target_min=5, feats=['Close',
 
             # Generate sequences & save
             #s = np.lib.stride_tricks.sliding_window_view(data, (seq_len, data.shape[1])).squeeze(axis=1)
-            for i, v in enumerate(range(target_min, len(data)-seq_len)):
-                if i == 0:
-                    x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
-                else:
-                    z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
-                    x = np.concatenate((x, z), axis=0)
+            #for i, v in enumerate(range(target_min, len(data)-seq_len)):
+            #    if i == 0:
+            #        x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+            #    else:
+            #        z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+            #        x = np.concatenate((x, z), axis=0)
             
             y = data['Close'].values[seq_len + target_min:]
 
@@ -145,9 +171,10 @@ def process_ticker(t, datapath, last_date, seq_len=60, target_min=5, feats=['Clo
         os.mkdir( datapath + 'raw_seq')
     except:
         pass
+
     np.savez_compressed(datapath + 'raw_seq/' + t + '.npz', x=xs, y=ys)
 
-def process_data_multi(tickers, num_proc=None, datapath='./', seq_len=60, target_min=5, save=True):
+def process_data_mp(tickers, num_proc=None, datapath='./', seq_len=60, target_min=5, save=True):
     """Applies multiprocessing to tickers fed into a ticker list, wraps the process ticker, 
     uses functools.partial() to apply closure pattern to single ticker processing
 
@@ -175,7 +202,6 @@ def process_data_multi(tickers, num_proc=None, datapath='./', seq_len=60, target
     proc_time = (time.time()-t1)
     return proc_time
 
-
 def combine_seqs(datapath):
     """Combines sequences"""
     # NON SPARK! WORK IN PROGRESS
@@ -197,7 +223,7 @@ if __name__ == '__main__':
     datapath = './'
     if sys.argv[1] != 'all':
         tickers = tickers[:int(sys.argv[1])]
-    proctime = process_data_multi(tickers, num_proc=8, datapath='./', seq_len=60, target_min=5, save=True)
+    proctime = process_data_mp(['ABT', 'AOS', 'MMM'], num_proc=8, datapath='./', seq_len=60, target_min=5, save=True)
     print(f'Processing time: {proctime:0.2f}')
-    combine_seqs(datapath)
+    #combine_seqs(datapath)
     print(f'Total time: {time.time()-t1:0.2f}')
