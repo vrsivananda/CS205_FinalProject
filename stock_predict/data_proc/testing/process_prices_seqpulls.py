@@ -3,6 +3,7 @@ import datetime as dt
 import yfinance as yf
 import numpy as np
 import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
 import threading
 from functools import partial
 import re
@@ -113,21 +114,7 @@ def process_tickers(tickers, start_date, end_date, seq_len=60, target_min=5, fea
     ys = np.concatenate(ys, axis=0)
     return xs, ys
 
-def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True, datapath='./'):
-    """Sequential version of data pull and save function. This version pulls all N tickers
-    for each date in the applicable date sequences, converts to sequences, and saves. yfinance
-    API parallelizes threads to improve performance, but processing still slowed by Python limits
-
-    Args:
-        tickers (list): List of tickers for data downloads
-        seq_len (optional, int): length in minutes of sequences for training
-        target_min (optional, int): minutes ahead of end of training seqeuence for target price
-        feats (optional, list[str]): list of features to include from yfinance
-        save (optional, boolean): will save out file if True, otherwise will not
-        datapath (optional, str): path to save training_data.npz; defaults to current directory.
-    Returns
-        None.
-    """
+def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True):
     t1 = time.time()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
 
@@ -152,27 +139,10 @@ def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'
     # Convert to single array and save out
     total_x = np.concatenate(total_x, axis=0)
     total_y = np.concatenate(total_y, axis=0)
-    if save == True:
-        np.savez_compressed(datapath + 'training_data.npz', x_train=total_x, y_train=total_y)
+    np.savez_compressed(datapath + 'training_data.npz', x_train=total_x, y_train=total_y)
     
 
-def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True, datapath='./'):
-    """Parallel version of data pull and save function. Maps n_proc processes to roughly evenly divided
-    blocks of the tickers. Note that yfinance API will automatically pull as single DF (i.e. non Multi-Index)
-    if only one ticker, so minimum number must be two. 
-
-    Args:
-        tickers (list): List of tickers for data downloads
-        n_proc (optional, int): number of processes to map. Greater than the number of CPU cores
-                                will result in no additional speedup
-        seq_len (optional, int): length in minutes of sequences for training
-        target_min (optional, int): minutes ahead of end of training seqeuence for target price
-        feats (optional, list[str]): list of features to include from yfinance
-        save (optional, boolean): will save out file if True, otherwise will not
-        datapath (optional, str): path to save training_data.npz; defaults to current directory.
-    Returns
-        None.
-    """
+def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True):
     t1 = time.time()
     first_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
 
@@ -220,9 +190,78 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
     # Convert to single array and save out
     total_x = np.concatenate(total_x, axis=0)
     total_y = np.concatenate(total_y, axis=0)
-    if save == True:
-        np.savez_compressed(datapath + 'training_data.npz', x_train=total_x, y_train=total_y)    
+    np.savez_compressed(datapath + 'training_data.npz', x_train=total_x, y_train=total_y)    
         
+
+
+def process_ticker(t, datapath, last_date, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True):
+    """Processes stock price data for a single ticker
+    Args
+        t: ticker symbols to iterate over, required
+        datapath: path to data storage files
+        seq_len: (optional) length of sequence in minutes
+        target_min: (optional) target minutes ahead (default set at 5 min)
+    Returns
+        None
+    """
+    today = dt.date.today()
+    day = last_date
+    day_ct = 0
+    # Create list of xs and ys to be combined into array
+    xs, ys = [], []
+    while day < today:
+        end_day = day + dt.timedelta(days=1)
+        data = yf.download(t, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
+        day += dt.timedelta(days=1)
+
+        # Need to except weekends
+        if len(data) == 0:
+            continue
+
+        # Generate sequences & save
+        x = generate_sequences(data, target_min=target_min, seq_len=seq_len, feats=feats)
+        y = data['Close'].values[seq_len + target_min:]
+
+        xs.append(x)
+        ys.append(y)
+
+    xs = np.concatenate(xs, axis=0)
+    ys = np.concatenate(ys, axis=0)
+    try:
+        os.mkdir( datapath + 'raw_seq')
+    except:
+        pass
+
+    np.savez_compressed(datapath + 'raw_seq/' + t + '.npz', x=xs, y=ys)
+
+def process_data_mp(tickers, num_proc=None, datapath='./', seq_len=60, target_min=5, save=True):
+    """Applies multiprocessing to tickers fed into a ticker list, wraps the process ticker, 
+    uses functools.partial() to apply closure pattern to single ticker processing
+
+    Note: Used functools.partial() rather than self-closure for optimization purposes
+    
+    Returns
+    -------
+    proc_time: time in seconds to perform processing"""
+    t1 = time.time()
+    last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
+    # Assign pool size of the number of processes
+    p = multiprocessing.Pool(num_proc)
+
+    # Use functools.partial method to create mapping function
+    # for non-simple functions
+    # See more here: https://docs.python.org/3/library/functools.html
+    mapfunc = partial(process_ticker, datapath=datapath, last_date=last_date, seq_len=seq_len, 
+                        target_min=target_min, feats=['Close', 'Volume'], save=True)
+    p.map(mapfunc, tickers)
+
+    # Ensure that process has closed and joined before proceeding
+    p.close()
+    p.join()
+
+    proc_time = (time.time()-t1)
+    return proc_time
+
             
 if __name__ == '__main__':
     t1 = time.time()
@@ -232,8 +271,5 @@ if __name__ == '__main__':
         tickers = tickers[:int(sys.argv[1])]
 
     #process_data_seq(tickers)
-    try:
-        process_data_parallel(tickers, int(sys.argv[2]))
-    except IndexError:
-        process_data_parallel(tickers)
+    process_data_parallel(tickers, int(sys.argv[2]))
     print(f'Total time: {time.time()-t1:0.2f}')
