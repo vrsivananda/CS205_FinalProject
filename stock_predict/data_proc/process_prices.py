@@ -228,11 +228,10 @@ if __name__ == '__main__':
     t1 = time.time()
     tickers = read_tickers('all')
     datapath = './'
-    if sys.argv[1] != 'all':
-        tickers = tickers[:int(sys.argv[1])]
-
-    #process_data_seq(tickers)
     try:
+        if sys.argv[1] != 'all':
+            tickers = tickers[:int(sys.argv[1])]
+        #process_data_seq(tickers)
         process_data_parallel(tickers, int(sys.argv[2]))
     except IndexError:
         process_data_parallel(tickers)

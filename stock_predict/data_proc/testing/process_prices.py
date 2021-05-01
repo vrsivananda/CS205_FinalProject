@@ -64,6 +64,7 @@ def process_tickers(tickers, datapath, seq_len=60, target_min=5, save=True):
     t1 = time.time()
     today = dt.date.today()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
+    xt = [], yt = []
     for t in tickers:
         day = last_date
         xs, ys = [], []
@@ -96,7 +97,9 @@ def process_tickers(tickers, datapath, seq_len=60, target_min=5, save=True):
         except:
             pass
 
-        np.savez(datapath + 'raw_seq/' + t + '.npz', x=xs, y=ys)
+        #np.savez(datapath + 'raw_seq/' + t + '.npz', x=xs, y=ys)
+        xt.append(xs)
+        yt.append(ys)
     # Return processing time
     return time.time()-t1
 

@@ -270,6 +270,5 @@ if __name__ == '__main__':
     if sys.argv[1] != 'all':
         tickers = tickers[:int(sys.argv[1])]
 
-    #process_data_seq(tickers)
-    process_data_parallel(tickers, int(sys.argv[2]))
+    
     print(f'Total time: {time.time()-t1:0.2f}')
