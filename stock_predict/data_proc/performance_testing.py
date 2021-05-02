@@ -196,5 +196,5 @@ def strong_scaling(n=100):
 
 
 if __name__ == '__main__':
-    initial_perf_scaling_test(int(sys.argv[1]))
-    #strong_scaling(n=16)
+    #initial_perf_scaling_test(int(sys.argv[1]))
+    strong_scaling(n=500)
