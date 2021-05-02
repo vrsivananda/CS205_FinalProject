@@ -41,7 +41,9 @@ To mitigate these overheads, we implemented the following strategies:
 
 #### Performance evaluation
 
-## TODO
+To evaluate the performance and speedup of these parallel implementations, we conducted two tests. First, we compare all four implementations: fully sequential, using multi-core processing only, multiple threading only, and multiple-core processing with each core utilizing many threads. This test was conducted with 50 stock tickers as a proof of concept. The speedup relative to the naive baseline is substantial. As can be seen below, with eight processors, we achieve a speedup of nearly 25x over the baseline. As the plot shows, we achieve approximately 6x speedup with only the application of multi-core processing. Given that our processing task must achieve data input and output, inherently sequential tasks, this speedup is consistent with Ahmdal's law of strong scaling. In a purely parallel program, we would expect 8x speedup, and thus the reduction can be attributed to the I/O constraints. Moreover, the incredible speedup achieved by implementation of a multithreaded download further emphasizes the I/O bound nature of our task. Even using only a single core achieves a speedup of nearly 5x.
+
+Given the substantial speedup and built-in implementation of the multiple-threading download, we have demonstrated a larger scale test between the multiple-thread single core and multiple-thread, multiple core, using all 500 stock tickers. 
 
 #### Lessons & Future Direction
 

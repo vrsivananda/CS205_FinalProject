@@ -42,18 +42,30 @@ def plot_speedup_all():
     axs[1].set_title('Comparison using with multithreading baseline')
     plt.suptitle(f'Plot using 50 tickers')
     plt.legend()
-    plt.show()
+    
     plt.savefig('./speedup_processing_all.png')
+    plt.show()
 
 def plot_speedup_multithread():
     """Only plots multithreading speedup"""
     sequential_times, parallel_times = get_times('strong_scaling.txt')
-    fig, axs = plt.subplots(1, 2, figsize=(10,6))
+    fig, axs = plt.subplots(1, 1, figsize=(10,6))
+    sequential_times = re.findall('[0-9\.]*', sequential_times[0])[0]
+    speedups = [float(sequential_times)/float(p) for p in parallel_times[0]]
+    cores = [1,2,4,8]
+    plt.plot(cores, speedups, label=f'Actual Speedup')
+    plt.plot(cores, cores, ls='--', c='k', label=f'Predicted Speedup')
+    plt.xlabel('Processors')
+    plt.ylabel('Speedup')
+    plt.title('Speedup with multiple processes, all 500 tickers')
+    plt.savefig('./full_multithread_perf.png')
+    plt.show()
+
 
 
 if __name__ == '__main__':
-    plot_speedup_all()
-
+    #plot_speedup_all()
+    plot_speedup_multithread()
     
 
 
