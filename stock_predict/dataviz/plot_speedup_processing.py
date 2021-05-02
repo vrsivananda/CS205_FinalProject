@@ -59,6 +59,7 @@ def plot_speedup_multithread():
     plt.ylabel('Speedup')
     plt.title('Speedup with multiple processes, all 500 tickers')
     plt.savefig('./full_multithread_perf.png')
+    print(speedups)
     plt.show()
 
 

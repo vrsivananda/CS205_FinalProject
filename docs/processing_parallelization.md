@@ -43,7 +43,11 @@ To mitigate these overheads, we implemented the following strategies:
 
 To evaluate the performance and speedup of these parallel implementations, we conducted two tests. First, we compare all four implementations: fully sequential, using multi-core processing only, multiple threading only, and multiple-core processing with each core utilizing many threads. This test was conducted with 50 stock tickers as a proof of concept. The speedup relative to the naive baseline is substantial. As can be seen below, with eight processors, we achieve a speedup of nearly 25x over the baseline. As the plot shows, we achieve approximately 6x speedup with only the application of multi-core processing. Given that our processing task must achieve data input and output, inherently sequential tasks, this speedup is consistent with Ahmdal's law of strong scaling. In a purely parallel program, we would expect 8x speedup, and thus the reduction can be attributed to the I/O constraints. Moreover, the incredible speedup achieved by implementation of a multithreaded download further emphasizes the I/O bound nature of our task. Even using only a single core achieves a speedup of nearly 5x.
 
-Given the substantial speedup and built-in implementation of the multiple-threading download, we have demonstrated a larger scale test between the multiple-thread single core and multiple-thread, multiple core, using all 500 stock tickers. 
+## #TODO: ADD PLOT
+
+Given the substantial speedup and built-in implementation of the multiple-threading download, we have demonstrated a larger scale test between the multiple-thread single core and multiple-thread, multiple core, using all 500 stock tickers, representing a more realistic view of our data processing task. The plot below shows a speedup of approximately 6.85x for the 8 core processing task. The scaling here closely follows Ahmdal's law, which is intuitive given that it is almost embarrassingly parallel. The small reduction in time is likely due to the I/O restrictions of creating the dataset. After processing, the sequences are concatenated into a single dataset to be fed to the model. For data-intensive tasks, this is almost always an issue and prevents full parallelization of the task. There are two further points to highlight. First, the multi-process mode with only a single process is slower (speedup of 0.96x) compared to the sequential version. This slight penalty shows the computational cost associated with orchestration of the `multiprocessing` library and likely the `fork` `join` model of waiting for the process to complete. Finally, the non-parallel version of this process takes approximately 36 minutes compared to slightly more than 5 minutes for the parallel version. Indeed, estimating this performance over the fully sequential version suggests the code would take approximately 2.5 hours! Thus, our solution here dramatically reduces the time needed to pull this data.
+
+## #TODO: ADD PLOT 
 
 #### Lessons & Future Direction
 
@@ -56,7 +60,32 @@ Given the substantial speedup and built-in implementation of the multiple-thread
 
 All testing was conducted on AWS. Specification details are below:
 
-- 
+- Instance: `t2.2xlarge`
+
+| Hardware Spec. | Details                                   |
+| -------------- | ----------------------------------------- |
+| Model          | Intel(R) Xeon(R) CPU E5-2676 v3 @ 2.40GHz |
+| # of vCPU      | 8                                         |
+| Cores per CPU  | 8                                         |
+| L1 Cache       | 256KB                                     |
+| L2 Cache       | 2MB                                       |
+| L3 Cache       | 30MB                                      |
+| Main Memory    | 32GB                                      |
+
+| Software Spec.   | Details      |
+| ---------------- | ------------ |
+| Operating System | Ubuntu 20.04 |
+| Compiler         | GCC 9.3.0    |
+| Python           | 3.8.5        |
+| Spark            | 3.1.1        |
+
+| Python Package                                  | Version |
+| ----------------------------------------------- | ------- |
+| `NumPy`                                         | 1.19.2  |
+| `yfinance`                                      | 0.1.59  |
+| `pandas`                                        | 1.2.4   |
+| `re`                                            | 2.2.1   |
+| Other libraries part of Python Standard Library | 3.8.5   |
 
 - Code profiler: cProfile, tables created via cProfile & `grep`
 
