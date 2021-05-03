@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 import multiprocessing
 import threading
-from functools import partial
+from functools import partial, reduce
 import re
 from pyspark import SparkConf, SparkContext
-from pyspark.sql import SQLContext, SparkSession
+from pyspark.sql import SQLContext, SparkSession, DataFrame
 #from pyspark.sql.functions import split as ps_split
 #from pyspark.sql.functions import when
 #from pyspark.sql.functions import collect_list
@@ -158,13 +158,15 @@ def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'
 
         df = pd.DataFrame([[ex[i].tolist() for i in range(len(ex))] for ex in x], columns=['t_' + str(i) for i in range(seq_len)])
         df['output'] = y
-        total_dfs.append(df)
+        s = spark.createDataFrame(df)
+        total_dfs.append(s)
 
     # Convert to Spark DataFrame structure and save as parquet
     # https://rasterframes.io/numpy-pandas.html
     # Convert via Pandas dataframe
-    df = pd.concat(total_dfs, axis=0, ignore_index=True)
-    s = spark.createDataFrame(df)
+    #df = pd.concat(total_dfs, axis=0, ignore_index=True)
+    #s = spark.createDataFrame(df)
+    df = reduce(DataFrame.union, total_dfs)
 
     if save == True:
         s.write.save("training_data.parquet", format="parquet")
