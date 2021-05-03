@@ -2,6 +2,7 @@ import sys, os, requests, time, math
 import datetime as dt
 import yfinance as yf
 import numpy as np
+import pandas as pd
 import multiprocessing
 import threading
 from functools import partial
@@ -41,7 +42,7 @@ def read_tickers(which=None):
     files = os.listdir()
     if 'ticker_list' not in files:
         t = requests.get(url).json()
-        tickers = [d['Symbol'] for d in t]
+        tickers = [d['Symbol'] for d in t if '.' not in d['Symbol']]
         with open('ticker_list', 'w') as f:
             for ticker in tickers:
                 f.write(ticker + '\n')
@@ -99,10 +100,14 @@ def process_tickers(tickers, start_date, end_date, seq_len=60, target_min=5, fea
     
     # Iterate through dataframe
     xs, ys = [], []
+    data_all.index = pd.to_datetime(data_all.index)
     dates = np.unique(data_all.index.date)
     for t in tickers:
         for d in dates:
-            data_sub = data_all[t].loc[str(d)]
+            if len(tickers) > 1:
+                data_sub = data_all[t].loc[str(d)]
+            else:
+                data_sub = data_all.loc[str(d)]
             x = generate_sequences(data_sub, target_min=5, seq_len=60, feats=['Close', 'Volume'])
             y = data_sub['Close'].values[seq_len + target_min:]
             
@@ -194,7 +199,7 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
     today_dt = dt.datetime.today().date()
     
     total_x, total_y = [], []
-    while end_date < today_dt:
+    while start_date < today_dt:
         print(start_date, end_date)
         
         # Use functools.partial method to create mapping function
@@ -231,7 +236,7 @@ if __name__ == '__main__':
     try:
         if sys.argv[1] != 'all':
             tickers = tickers[:int(sys.argv[1])]
-        #process_data_seq(tickers)
+        #process_data_seq(tickers, save=False)
         process_data_parallel(tickers, int(sys.argv[2]))
     except IndexError:
         process_data_parallel(tickers)

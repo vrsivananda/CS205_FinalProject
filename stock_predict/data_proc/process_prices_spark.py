@@ -2,19 +2,19 @@ import sys, os, requests, time, math
 import datetime as dt
 import yfinance as yf
 import numpy as np
+import pandas as pd
 import multiprocessing
-from concurrent.futures import ThreadPoolExecutor
 import threading
 from functools import partial
 import re
-#from pyspark import SparkConf, SparkContext
-#from pyspark.sql import SQLContext, SparkSession
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SQLContext, SparkSession
 #from pyspark.sql.functions import split as ps_split
 #from pyspark.sql.functions import when
 #from pyspark.sql.functions import collect_list
 
 # Author: Kevin Hare
-# Last Updated: 5/1/2021
+# Last Updated: 5/3/2021
 # Purpose: Save yfinance data and convert to sequence
 
 def find_last_date(interval='1m'):
@@ -42,7 +42,7 @@ def read_tickers(which=None):
     files = os.listdir()
     if 'ticker_list' not in files:
         t = requests.get(url).json()
-        tickers = [d['Symbol'] for d in t]
+        tickers = [d['Symbol'] for d in t if '.' not in d['Symbol']]
         with open('ticker_list', 'w') as f:
             for ticker in tickers:
                 f.write(ticker + '\n')
@@ -100,10 +100,14 @@ def process_tickers(tickers, start_date, end_date, seq_len=60, target_min=5, fea
     
     # Iterate through dataframe
     xs, ys = [], []
+    data_all.index = pd.to_datetime(data_all.index)
     dates = np.unique(data_all.index.date)
     for t in tickers:
         for d in dates:
-            data_sub = data_all[t].loc[str(d)]
+            if len(tickers) > 1:
+                data_sub = data_all[t].loc[str(d)]
+            else:
+                data_sub = data_all.loc[str(d)]
             x = generate_sequences(data_sub, target_min=5, seq_len=60, feats=['Close', 'Volume'])
             y = data_sub['Close'].values[seq_len + target_min:]
             
@@ -114,7 +118,25 @@ def process_tickers(tickers, start_date, end_date, seq_len=60, target_min=5, fea
     ys = np.concatenate(ys, axis=0)
     return xs, ys
 
-def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True):
+def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True, datapath='./'):
+    """Sequential version of data pull and save function. This version pulls all N tickers
+    for each date in the applicable date sequences, converts to sequences, and saves. yfinance
+    API parallelizes threads to improve performance, but processing still slowed by Python limits
+
+    Args:
+        tickers (list): List of tickers for data downloads
+        seq_len (optional, int): length in minutes of sequences for training
+        target_min (optional, int): minutes ahead of end of training seqeuence for target price
+        feats (optional, list[str]): list of features to include from yfinance
+        save (optional, boolean): will save out file if True, otherwise will not
+        datapath (optional, str): path to save training_data.npz; defaults to current directory.
+    Returns
+        None.
+    """
+    # Set up Spark Session
+    conf = SparkConf().setMaster('local').setAppName('dataProcessingSeq')
+    spark = SparkSession.builder.config(conf = conf).getOrCreate()
+
     t1 = time.time()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
 
@@ -124,7 +146,7 @@ def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'
     end_date = start_date + dt.timedelta(days=7)
     today_dt = dt.datetime.today().date()
 
-    total_x, total_y = [], []
+    total_dfs = []
     # Loop over date ranges
     while start_date < today_dt:
         print(start_date, end_date)
@@ -134,15 +156,40 @@ def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'
         start_date = end_date + dt.timedelta(days=1)
         end_date += dt.timedelta(days=8)
 
-        total_x.append(x)
-        total_y.append(y)
-    # Convert to single array and save out
-    total_x = np.concatenate(total_x, axis=0)
-    total_y = np.concatenate(total_y, axis=0)
-    np.savez_compressed(datapath + 'training_data.npz', x_train=total_x, y_train=total_y)
+        df = pd.DataFrame([[ex[i].tolist() for i in range(len(ex))] for ex in x], columns=['t_' + str(i) for i in range(seq_len)])
+        df['output'] = y
+        total_dfs.append(df)
+
+    # Convert to Spark DataFrame structure and save as parquet
+    # https://rasterframes.io/numpy-pandas.html
+    # Convert via Pandas dataframe
+    df = pd.concat(total_dfs, axis=0, ignore_index=True)
+    s = spark.createDataFrame(df)
+
+    if save == True:
+        s.write.save("training_data.parquet", format="parquet")
     
 
-def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True):
+def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True, datapath='./'):
+    """Parallel version of data pull and save function. Maps n_proc processes to roughly evenly divided
+    blocks of the tickers. Note that yfinance API will automatically pull as single DF (i.e. non Multi-Index)
+    if only one ticker, so minimum number must be two. 
+
+    Args:
+        tickers (list): List of tickers for data downloads
+        n_proc (optional, int): number of processes to map. Greater than the number of CPU cores
+                                will result in no additional speedup
+        seq_len (optional, int): length in minutes of sequences for training
+        target_min (optional, int): minutes ahead of end of training seqeuence for target price
+        feats (optional, list[str]): list of features to include from yfinance
+        save (optional, boolean): will save out file if True, otherwise will not
+        datapath (optional, str): path to save training_data.npz; defaults to current directory.
+    Returns
+        None.
+    """
+    conf = SparkConf().setMaster('local').setAppName('dataProcessingParallel')
+    spark = SparkSession.builder.config(conf = conf).getOrCreate()
+
     t1 = time.time()
     first_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
 
@@ -163,8 +210,8 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
     end_date = start_date + dt.timedelta(days=7)
     today_dt = dt.datetime.today().date()
     
-    total_x, total_y = [], []
-    while end_date < today_dt:
+    total_dfs = []
+    while start_date < today_dt:
         print(start_date, end_date)
         
         # Use functools.partial method to create mapping function
@@ -184,91 +231,29 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
         start_date = end_date + dt.timedelta(days=1)
         end_date += dt.timedelta(days=8)
 
-        total_x.append(xs)
-        total_y.append(ys)
+        df = pd.DataFrame([[ex[i].tolist() for i in range(len(ex))] for ex in xs], columns=['t_' + str(i) for i in range(seq_len)])
+        df['output'] = ys
+        total_dfs.append(df)
 
-    # Convert to single array and save out
-    total_x = np.concatenate(total_x, axis=0)
-    total_y = np.concatenate(total_y, axis=0)
-    np.savez_compressed(datapath + 'training_data.npz', x_train=total_x, y_train=total_y)    
+    # Convert to Spark DataFrame structure and save as parquet
+    # https://rasterframes.io/numpy-pandas.html
+    # Convert via Pandas dataframe
+    df = pd.concat(total_dfs, axis=0, ignore_index=True)
+    s = spark.createDataFrame(df)
+
+    if save == True:
+        s.write.mode('overwrite').save("training_data.parquet", format="parquet")
         
-
-
-def process_ticker(t, datapath, last_date, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True):
-    """Processes stock price data for a single ticker
-    Args
-        t: ticker symbols to iterate over, required
-        datapath: path to data storage files
-        seq_len: (optional) length of sequence in minutes
-        target_min: (optional) target minutes ahead (default set at 5 min)
-    Returns
-        None
-    """
-    today = dt.date.today()
-    day = last_date
-    day_ct = 0
-    # Create list of xs and ys to be combined into array
-    xs, ys = [], []
-    while day < today:
-        end_day = day + dt.timedelta(days=1)
-        data = yf.download(t, period='1d', interval='1m', start=str(day), end=str(end_day), progress=False)
-        day += dt.timedelta(days=1)
-
-        # Need to except weekends
-        if len(data) == 0:
-            continue
-
-        # Generate sequences & save
-        x = generate_sequences(data, target_min=target_min, seq_len=seq_len, feats=feats)
-        y = data['Close'].values[seq_len + target_min:]
-
-        xs.append(x)
-        ys.append(y)
-
-    xs = np.concatenate(xs, axis=0)
-    ys = np.concatenate(ys, axis=0)
-    try:
-        os.mkdir( datapath + 'raw_seq')
-    except:
-        pass
-
-    np.savez_compressed(datapath + 'raw_seq/' + t + '.npz', x=xs, y=ys)
-
-def process_data_mp(tickers, num_proc=None, datapath='./', seq_len=60, target_min=5, save=True):
-    """Applies multiprocessing to tickers fed into a ticker list, wraps the process ticker, 
-    uses functools.partial() to apply closure pattern to single ticker processing
-
-    Note: Used functools.partial() rather than self-closure for optimization purposes
-    
-    Returns
-    -------
-    proc_time: time in seconds to perform processing"""
-    t1 = time.time()
-    last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
-    # Assign pool size of the number of processes
-    p = multiprocessing.Pool(num_proc)
-
-    # Use functools.partial method to create mapping function
-    # for non-simple functions
-    # See more here: https://docs.python.org/3/library/functools.html
-    mapfunc = partial(process_ticker, datapath=datapath, last_date=last_date, seq_len=seq_len, 
-                        target_min=target_min, feats=['Close', 'Volume'], save=True)
-    p.map(mapfunc, tickers)
-
-    # Ensure that process has closed and joined before proceeding
-    p.close()
-    p.join()
-
-    proc_time = (time.time()-t1)
-    return proc_time
-
             
 if __name__ == '__main__':
     t1 = time.time()
     tickers = read_tickers('all')
     datapath = './'
-    if sys.argv[1] != 'all':
-        tickers = tickers[:int(sys.argv[1])]
-
-    
+    try:
+        if sys.argv[1] != 'all':
+            tickers = tickers[:int(sys.argv[1])]
+        #process_data_seq(tickers, save=True)
+        process_data_parallel(tickers, int(sys.argv[2]))
+    except IndexError:
+        process_data_parallel(tickers)
     print(f'Total time: {time.time()-t1:0.2f}')
