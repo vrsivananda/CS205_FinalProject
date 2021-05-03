@@ -7,14 +7,14 @@ import multiprocessing
 import threading
 from functools import partial
 import re
-#from pyspark import SparkConf, SparkContext
-#from pyspark.sql import SQLContext, SparkSession
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SQLContext, SparkSession
 #from pyspark.sql.functions import split as ps_split
 #from pyspark.sql.functions import when
 #from pyspark.sql.functions import collect_list
 
 # Author: Kevin Hare
-# Last Updated: 5/1/2021
+# Last Updated: 5/3/2021
 # Purpose: Save yfinance data and convert to sequence
 
 def find_last_date(interval='1m'):
@@ -133,6 +133,10 @@ def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'
     Returns
         None.
     """
+    # Set up Spark Session
+    conf = SparkConf().setMaster('local').setAppName('dataProcessingSeq')
+    spark = SparkSession.builder.config(conf = conf).getOrCreate()
+
     t1 = time.time()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
 
@@ -142,7 +146,7 @@ def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'
     end_date = start_date + dt.timedelta(days=7)
     today_dt = dt.datetime.today().date()
 
-    total_x, total_y = [], []
+    total_dfs = []
     # Loop over date ranges
     while start_date < today_dt:
         print(start_date, end_date)
@@ -152,13 +156,18 @@ def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'
         start_date = end_date + dt.timedelta(days=1)
         end_date += dt.timedelta(days=8)
 
-        total_x.append(x)
-        total_y.append(y)
-    # Convert to single array and save out
-    total_x = np.concatenate(total_x, axis=0)
-    total_y = np.concatenate(total_y, axis=0)
+        df = pd.DataFrame([[ex[i].tolist() for i in range(len(ex))] for ex in x], columns=['t_' + str(i) for i in range(seq_len)])
+        df['output'] = y
+        total_dfs.append(df)
+
+    # Convert to Spark DataFrame structure and save as parquet
+    # https://rasterframes.io/numpy-pandas.html
+    # Convert via Pandas dataframe
+    df = pd.concat(total_dfs, axis=0, ignore_index=True)
+    s = spark.createDataFrame(df)
+
     if save == True:
-        np.savez_compressed(datapath + 'training_data.npz', x_train=total_x, y_train=total_y)
+        s.write.save("training_data.parquet", format="parquet")
     
 
 def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True, datapath='./'):
@@ -178,6 +187,9 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
     Returns
         None.
     """
+    conf = SparkConf().setMaster('local').setAppName('dataProcessingParallel')
+    spark = SparkSession.builder.config(conf = conf).getOrCreate()
+
     t1 = time.time()
     first_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
 
@@ -198,7 +210,7 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
     end_date = start_date + dt.timedelta(days=7)
     today_dt = dt.datetime.today().date()
     
-    total_x, total_y = [], []
+    total_dfs = []
     while start_date < today_dt:
         print(start_date, end_date)
         
@@ -219,14 +231,18 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
         start_date = end_date + dt.timedelta(days=1)
         end_date += dt.timedelta(days=8)
 
-        total_x.append(xs)
-        total_y.append(ys)
+        df = pd.DataFrame([[ex[i].tolist() for i in range(len(ex))] for ex in xs], columns=['t_' + str(i) for i in range(seq_len)])
+        df['output'] = ys
+        total_dfs.append(df)
 
-    # Convert to single array and save out
-    total_x = np.concatenate(total_x, axis=0)
-    total_y = np.concatenate(total_y, axis=0)
+    # Convert to Spark DataFrame structure and save as parquet
+    # https://rasterframes.io/numpy-pandas.html
+    # Convert via Pandas dataframe
+    df = pd.concat(total_dfs, axis=0, ignore_index=True)
+    s = spark.createDataFrame(df)
+
     if save == True:
-        np.savez_compressed(datapath + 'training_data.npz', x_train=total_x, y_train=total_y)    
+        s.write.mode('overwrite').save("training_data.parquet", format="parquet")
         
             
 if __name__ == '__main__':
@@ -236,7 +252,7 @@ if __name__ == '__main__':
     try:
         if sys.argv[1] != 'all':
             tickers = tickers[:int(sys.argv[1])]
-        #process_data_seq(tickers, save=False)
+        #process_data_seq(tickers, save=True)
         process_data_parallel(tickers, int(sys.argv[2]))
     except IndexError:
         process_data_parallel(tickers)
