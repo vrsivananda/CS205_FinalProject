@@ -8,7 +8,7 @@ import datetime as dt
 import yfinance as yf
 import multiprocessing
 from functools import partial
-sys.path.append('./testing/')
+sys.path.append('..')
 
 
 def full_seq_proc(tickers, datapath='./', seq_len=60, target_min=5, save=True):
@@ -197,4 +197,5 @@ def strong_scaling(n=100):
 
 if __name__ == '__main__':
     #initial_perf_scaling_test(int(sys.argv[1]))
-    strong_scaling(n=500)
+    #strong_scaling(n=1)
+    print('hello')
