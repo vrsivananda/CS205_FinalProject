@@ -44,7 +44,8 @@ def process_rdd(time, rdd):
     #row_rdd = rdd.map(lambda w: Row(hashtag=w[0], hashtag_count=w[1]))
     #nrdd = rdd.map(lambda x: x.decode())
     print('test2')
-    print(rdd.collect())
+    x = rdd.collect()
+    print(x[0])
     # create a DF from the Row RDD
     #hashtags_df = sql_context.createDataFrame(row_rdd)
     
