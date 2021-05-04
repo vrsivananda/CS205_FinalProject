@@ -1,3 +1,4 @@
+#!/bin/bash
 
 # Increase volume
 #sudo apt install -y awscli
