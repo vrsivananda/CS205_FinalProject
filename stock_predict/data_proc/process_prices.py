@@ -67,6 +67,7 @@ def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']
     Returns
         seqs: numpy array of sequences (n_seqs, seq_len, len(feats))
     """
+    x = np.expand_dims(np.zeros((60,2))*np.nan, axis=0)
     for i, v in enumerate(range(target_min, len(data)-seq_len)):
         if i == 0:
             x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
