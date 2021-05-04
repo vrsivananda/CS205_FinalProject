@@ -6,7 +6,7 @@ Created on Tue May  4 12:21:42 2021
 @author: junkaiong
 """
 
-#import sys, os, requests, time, math
+import sys, os, requests, time, math, time
 import datetime as dt
 import yfinance as yf
 import numpy as np
@@ -30,7 +30,9 @@ def send_stock_to_spark(http_resp, tcp_connection):
             print(stock_text)
             # print("Stock Text: " + stock_text)
             print ("------------------------------------------")
-            tcp_connection.send(stock_text + '\n')
+            tcp_connection.send(str(stock_text + '\n').encode())
+            print(str(stock_text + '\n').encode())
+            
         except:
             e = sys.exc_info()[0]
             print("Error: %s" % e)
@@ -99,8 +101,6 @@ def read_tickers(which=None):
 # start_date = str(dt.date.today())
 # resp = get_stocks(tickers, start_date)
 
-            
-
 TCP_IP = "localhost"
 TCP_PORT = 9009
 conn = None
@@ -115,8 +115,8 @@ print("Connected... Starting getting stocks.")
 tickers = 'AAPL GOOG'
 start_date = '2021-05-03'
 # start_date = str(dt.date.today())
-resp = get_stocks(tickers, start_date)
-
-
-send_stock_to_spark(resp,conn)
+while True:
+    resp = get_stocks(tickers, start_date)
+    send_stock_to_spark(resp, conn)
+    time.sleep(45)
 
