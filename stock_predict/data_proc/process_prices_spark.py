@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 import multiprocessing
 import threading
-from functools import partial
+from functools import partial, reduce
 import re
 from pyspark import SparkConf, SparkContext
-from pyspark.sql import SQLContext, SparkSession
+from pyspark.sql import SQLContext, SparkSession, DataFrame
 #from pyspark.sql.functions import split as ps_split
 #from pyspark.sql.functions import when
 #from pyspark.sql.functions import collect_list
@@ -67,6 +67,7 @@ def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']
     Returns
         seqs: numpy array of sequences (n_seqs, seq_len, len(feats))
     """
+    x = np.expand_dims(np.zeros((60,2))*np.nan, axis=0)
     for i, v in enumerate(range(target_min, len(data)-seq_len)):
         if i == 0:
             x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
@@ -114,8 +115,10 @@ def process_tickers(tickers, start_date, end_date, seq_len=60, target_min=5, fea
             # Add to existing sequences
             xs.append(x)
             ys.append(y)
+
     xs = np.concatenate(xs, axis=0)
     ys = np.concatenate(ys, axis=0)
+
     return xs, ys
 
 def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True, datapath='./'):
@@ -136,6 +139,7 @@ def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'
     # Set up Spark Session
     conf = SparkConf().setMaster('local').setAppName('dataProcessingSeq')
     spark = SparkSession.builder.config(conf = conf).getOrCreate()
+    sc = SparkContext(conf=conf)
 
     t1 = time.time()
     last_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
@@ -158,16 +162,17 @@ def process_data_seq(tickers, seq_len=60, target_min=5, feats=['Close', 'Volume'
 
         df = pd.DataFrame([[ex[i].tolist() for i in range(len(ex))] for ex in x], columns=['t_' + str(i) for i in range(seq_len)])
         df['output'] = y
-        total_dfs.append(df)
+        s = spark.createDataFrame(df)
+        total_dfs.append(s)
 
+
+    # Convert via Pandas dataframe
     # Convert to Spark DataFrame structure and save as parquet
     # https://rasterframes.io/numpy-pandas.html
-    # Convert via Pandas dataframe
-    df = pd.concat(total_dfs, axis=0, ignore_index=True)
-    s = spark.createDataFrame(df)
+    df = reduce(DataFrame.union, total_dfs)
 
     if save == True:
-        s.write.save("training_data.parquet", format="parquet")
+        df.write.save("training_data.parquet", format="parquet")
     
 
 def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['Close', 'Volume'], save=True, datapath='./'):
@@ -187,8 +192,11 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
     Returns
         None.
     """
-    conf = SparkConf().setMaster('local').setAppName('dataProcessingParallel')
+    conf = SparkConf().setMaster('local[*]').setAppName('dataProcessingParallel')
     spark = SparkSession.builder.config(conf = conf).getOrCreate()
+    spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+    spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch",100)
+    sc = SparkContext(conf=conf)
 
     t1 = time.time()
     first_date = dt.datetime.strptime(find_last_date(), "%Y-%m-%d").date()
@@ -210,7 +218,7 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
     end_date = start_date + dt.timedelta(days=7)
     today_dt = dt.datetime.today().date()
     
-    total_dfs = []
+    total_x, total_y = [], []
     while start_date < today_dt:
         print(start_date, end_date)
         
@@ -231,18 +239,25 @@ def process_data_parallel(tickers, n_proc=1, seq_len=60, target_min=5, feats=['C
         start_date = end_date + dt.timedelta(days=1)
         end_date += dt.timedelta(days=8)
 
-        df = pd.DataFrame([[ex[i].tolist() for i in range(len(ex))] for ex in xs], columns=['t_' + str(i) for i in range(seq_len)])
-        df['output'] = ys
-        total_dfs.append(df)
+        total_x.append(xs)
+        total_y.append(ys)
 
-    # Convert to Spark DataFrame structure and save as parquet
-    # https://rasterframes.io/numpy-pandas.html
     # Convert via Pandas dataframe
-    df = pd.concat(total_dfs, axis=0, ignore_index=True)
-    s = spark.createDataFrame(df)
+    # Convert to Spark DataFrame structure
+    # https://rasterframes.io/numpy-pandas.html
+    
+    total_x = np.concatenate(total_x, axis=0)
+    total_y = np.concatenate(total_y, axis=0)
+    #df = pd.DataFrame([[ex[i].tolist() for i in range(len(ex))] for ex in total_x], columns=['t_' + str(i) for i in range(seq_len)])
+    #df['output'] = total_y
+    ##print('hello from the other side')
+    #s = spark.createDataFrame(df)
+    #print('you have a')
+    rdd = sc.parallelize(total_x)
 
     if save == True:
-        s.write.mode('overwrite').save("training_data.parquet", format="parquet")
+        
+        #s.write.mode('overwrite').save("training_data.parquet", format="parquet")
         
             
 if __name__ == '__main__':

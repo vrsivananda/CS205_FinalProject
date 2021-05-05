@@ -27,10 +27,10 @@ x_train = x_train[ymask]
 y_train = y_train[ymask]
 
 # Create training, test sets
-train_size = 0.75
-count = int(len(y_train)*(1-train_size))
-idx = np.random.choice(len(y_train), count, replace=False)
-nonidx = np.array([i for i in range(len(y_train)) if i not in idx])
+#train_size = 0.75
+#count = int(len(y_train)*(1-train_size))
+#idx = np.random.choice(len(y_train), count, replace=False)
+#nonidx = np.array([i for i in range(len(y_train)) if i not in idx])
 #x_test = x_train[idx]
 #y_test = y_train[idx]
 #x_train = x_train[] 
@@ -38,22 +38,22 @@ nonidx = np.array([i for i in range(len(y_train)) if i not in idx])
 
 
 mod = tf.keras.Sequential([
-    tf.keras.layers.LSTM(16, return_sequences=True),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.LSTM(16),
+    #tf.keras.layers.LSTM(16, return_sequences=True),
+    #tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.LSTM(50),
     tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(32),
     tf.keras.layers.Dense(1)
 ])
 
 # Horovod: adjust learning rate based on number of GPUs.
-opt = tf.keras.optimizers.Adam(1e-3) #.Adadelta(1.0 * hvd.size())
+opt = tf.keras.optimizers.Adam(1e-4 * hvd.size()) #.Adadelta(1.0 * hvd.size())
 
 # Horovod: add Horovod Distributed Optimizer.
 opt = hvd.DistributedOptimizer(opt)
 
 mod.compile(optimizer=opt, loss='mse')
-mod.summary()
+#mod.summary()
 
 callbacks = [
     # Horovod: broadcast initial variable states from rank 0 to all other processes.
@@ -68,7 +68,10 @@ if hvd.rank() == 0:
 
 
 h = mod.fit(x=x_train, y=y_train,
-            epochs=1,
-            batch_size=32,
+            epochs=10,
+            batch_size=64,
             validation_split=0.25,
             verbose=1 if hvd.rank() == 0 else 0)
+
+# Save out model for transfer to prediction phase
+mod.save('trained_lstm_mod')

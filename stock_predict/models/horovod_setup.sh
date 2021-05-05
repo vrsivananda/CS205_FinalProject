@@ -39,12 +39,12 @@ sudo nvidia-smi --auto-boost-default=0
 sudo nvidia-smi -ac 2505,875
 
 # Install NCCL2
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin
-sudo mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600
-sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
-sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/ /"
-sudo apt-get update
-sudo apt install libnccl2=2.9.6-1+cuda11.3 libnccl-dev=2.9.6-1+cuda11.3
+#wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin
+#sudo mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600
+#sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+#sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/ /"
+#sudo apt-get update
+#sudo apt install libnccl2=2.9.6-1+cuda11.3 libnccl-dev=2.9.6-1+cuda11.3
 
 ### FROM TENSORFLOW GPU DOCUMENTATION
 # Add NVIDIA package repositories
@@ -69,6 +69,9 @@ sudo apt-get install --no-install-recommends \
     libcudnn8=8.0.4.30-1+cuda11.0  \
     libcudnn8-dev=8.0.4.30-1+cuda11.0
 
+# Install NCCL2
+sudo apt install libnccl2=2.9.6-1+cuda11.0 libnccl-dev=2.9.6-1+cuda11.0
+
 # Install pip
 sudo apt install -y python3-pip
 python3.8 -m pip install --upgrade pip
@@ -86,7 +89,9 @@ sudo apt-get install -y libopenmpi-dev
 # Install horovod
 #HOROVOD_WITH_TENSORFLOW=1 HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_MPI=1 python3.8 -m pip install --no-cache-dir horovod[tensorflow,keras]
 #export PATH="/home/ubuntu/.local/bin:$PATH" # This is only for the current session
-python3.8 -m pip install --no-cache-dir horovod[tensorflow,keras]
+HOROVOD_WITH_TENSORFLOW=1 HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_MPI=1 pip3 install --no-cache-dir horovod[tensorflow,keras]
+HOROVOD_WITH_TENSORFLOW=1 HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_MPI=1 pip3.8 install --no-cache-dir horovod[tensorflow,keras]
+export PATH="/home/ubuntu/.local/bin:$PATH"
 horovodrun --check-build
 horovodrun --gloo -np 1 -H localhost:1 python3.8 keras_mnist.py
 # ^ This runs with gloo

@@ -9,7 +9,7 @@ sudo apt install awscli
 sudo apt-get install cmake
 
 # Install necessary Python packages
-pip3 --no-cache-dir install -r requirements.txt
+pip3 --no-cache-dir install -r processing_requirements.txt
 
 # Install Spark precursors
 sudo apt-add-repository ppa:webupd8team/java
@@ -22,6 +22,9 @@ sudo curl -O https://downloads.apache.org/spark/spark-3.1.1/spark-3.1.1-bin-hado
 sudo tar xvf ./spark-3.1.1-bin-hadoop2.7.tgz
 sudo mkdir /usr/local/spark
 sudo cp -r spark-3.1.1-bin-hadoop2.7/* /usr/local/spark
+export 'PATH="$PATH:/usr/local/spark/bin"' >> ~/.profile
+source ~/.profile
+
 
 ## Install Horovod platform separately
 #pip3 --no-cache-dir install horovod[tensorflow,keras,spark]
