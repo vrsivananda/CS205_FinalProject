@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue May  4 12:21:42 2021
+Created on Wed May  5 13:32:25 2021
 
+@author: junkaiong
+"""
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue May  4 12:21:42 2021
 @author: junkaiong
 """
 
@@ -26,7 +33,7 @@ import json
 def send_stock_to_spark(http_resp, tcp_connection):
     for key, values in http_resp.items():
         try:
-            stock_text = str(key) + '>' + str(values)
+            stock_text = str(key) + ':' + str(values)
             print(stock_text)
             # print("Stock Text: " + stock_text)
             print ("------------------------------------------")
@@ -119,4 +126,3 @@ while True:
     resp = get_stocks(tickers, start_date)
     send_stock_to_spark(resp, conn)
     time.sleep(45)
-

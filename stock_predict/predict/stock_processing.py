@@ -9,8 +9,12 @@ Created on Tue May  4 15:56:56 2021
 from pyspark import SparkConf,SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.sql import Row,SQLContext
-import sys
-import requests
+
+import sys, os, requests, time, math
+import datetime as dt
+import yfinance as yf
+import numpy as np
+import pandas as pd
 
 # create spark configuration
 conf = SparkConf()
@@ -36,6 +40,7 @@ def get_sql_context_instance(spark_context):
 
 def process_rdd(time, rdd):
     print("----------- %s -----------" % str(time))
+
     #try:
     # Get spark sql singleton context from the current context
     sql_context = get_sql_context_instance(rdd.context)
@@ -43,7 +48,7 @@ def process_rdd(time, rdd):
     # convert the RDD to Row RDD
     #row_rdd = rdd.map(lambda w: Row(hashtag=w[0], hashtag_count=w[1]))
     #nrdd = rdd.map(lambda x: x.decode())
-    print('test2')
+    # print('test2')
     x = rdd.collect()
     print(x)
     # create a DF from the Row RDD
@@ -58,6 +63,86 @@ def process_rdd(time, rdd):
     #    e = sys.exc_info()[0]
     #    print("Error: %s" % e)
 
+
+def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']):
+    """Given a subset of data for a particular ticker and date, 
+    will return sequences of the appropriate length
+    
+    Args
+        data: subset dataframe
+        target_min (optional): target minutes ahead of end of sequence
+        seq_len (optional): sequence length to consider
+        feats (optional): list of features to keep
+    Returns
+        seqs: numpy array of sequences (n_seqs, seq_len, len(feats))
+    """
+    for i, v in enumerate(range(target_min, len(data)-seq_len)):
+        if i == 0:
+            x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+        else:
+            z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+            x = np.concatenate((x, z), axis=0)
+    return x
+
+def read_tickers(which=None):
+    """Reads ticker list"""
+    if which != "all":
+        return which.split()
+    url = 'https://pkgstore.datahub.io/core/s-and-p-500-companies/'+\
+        'constituents_json/data/87cab5b5abab6c61eafa6dfdfa068a42/constituents_json.json'
+    files = os.listdir()
+    if 'ticker_list' not in files:
+        t = requests.get(url).json()
+        tickers = [d['Symbol'] for d in t if '.' not in d['Symbol']]
+        with open('ticker_list', 'w') as f:
+            for ticker in tickers:
+                f.write(ticker + '\n')
+            f.close()
+    else:
+        tickers = []
+        f = open('ticker_list', 'r')
+        for line in f:
+            tickers.append(line.strip())
+
+    return tickers
+
+def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['Close', 'Volume']):
+    data_all = yf.download(tickers, interval='1m', start=start_date, progress=False, group_by='ticker')
+    # print(data_all)
+    
+    last_60min = data_all.iloc[-67:-1,:]
+    # print(last_60min)
+
+    # Iterate through dataframe
+    xs, ys = [], []
+
+    for t in tickers:
+        if len(tickers) > 1:
+            data_sub = last_60min[t]
+        else:
+            data_sub = last_60min
+        x_seq = generate_sequences(data_sub, target_min=target_min, seq_len=seq_len, feats=feats)
+        y = data_sub['Close'].values[seq_len + target_min:]
+        
+        # Add to existing sequences
+        xs.append(x_seq)
+        ys.append(y)
+    xs = np.concatenate(xs, axis=0)
+    ys = np.concatenate(ys, axis=0)
+    
+
+    print(xs.shape)
+    return xs, ys
+
+
+# tickers = read_tickers('all')
+tickers = ['AAPL']
+prev_day = dt.date.today() - dt.timedelta(days=1)
+xs, ys = get_prev_day_stocks(tickers, prev_day, target_min=5, seq_len=60, feats=['Close', 'Volume'])
+
+print(xs)
+
+# # to uncomment below to stream
 # split each tweet into words
 words = dataStream.map(lambda x: x.split('\n'))#.flatMap(lambda line: line.split(">"))
 
