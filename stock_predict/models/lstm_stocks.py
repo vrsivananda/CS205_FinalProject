@@ -9,6 +9,7 @@ gpus = tf.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
 if gpus:
+    print('gpus')
     tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
 data = np.load('training_data.npz')
@@ -25,10 +26,23 @@ ymask = np.isnan(y_train) == False
 x_train = x_train[ymask]
 y_train = y_train[ymask]
 
+# Create training, test sets
+train_size = 0.75
+count = int(len(y_train)*(1-train_size))
+idx = np.random.choice(len(y_train), count, replace=False)
+nonidx = np.array([i for i in range(len(y_train)) if i not in idx])
+#x_test = x_train[idx]
+#y_test = y_train[idx]
+#x_train = x_train[] 
+
+
+
 mod = tf.keras.Sequential([
-    tf.keras.layers.LSTM(8, return_sequences=True),
-    tf.keras.layers.LSTM(8),
-    tf.keras.layers.Dense(16),
+    tf.keras.layers.LSTM(16, return_sequences=True),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.LSTM(16),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(32),
     tf.keras.layers.Dense(1)
 ])
 
@@ -39,6 +53,7 @@ opt = tf.keras.optimizers.Adam(1e-3) #.Adadelta(1.0 * hvd.size())
 opt = hvd.DistributedOptimizer(opt)
 
 mod.compile(optimizer=opt, loss='mse')
+mod.summary()
 
 callbacks = [
     # Horovod: broadcast initial variable states from rank 0 to all other processes.
@@ -54,6 +69,6 @@ if hvd.rank() == 0:
 
 h = mod.fit(x=x_train, y=y_train,
             epochs=1,
-            batch_size=64,
+            batch_size=32,
             validation_split=0.25,
             verbose=1 if hvd.rank() == 0 else 0)
