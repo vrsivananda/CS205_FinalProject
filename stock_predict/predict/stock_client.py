@@ -33,7 +33,7 @@ import json
 def send_stock_to_spark(http_resp, tcp_connection):
     for key, values in http_resp.items():
         try:
-            stock_text = str(key) + ':' + str(values)
+            stock_text = str(key) + '>' + str(values)
             print(stock_text)
             # print("Stock Text: " + stock_text)
             print ("------------------------------------------")
@@ -72,7 +72,7 @@ def get_stocks(tickers, start_date):
     
         ticker_dict[x_columns[i]] = new_x
     
-    print(ticker_dict)
+    # print(ticker_dict)
     
     # still thinking if i should return as json string or as dict 
     # ticker_json_object = json.dumps(ticker_dict, indent = 4)  
@@ -119,9 +119,9 @@ conn, addr = s.accept()
 print("Connected... Starting getting stocks.")
 
 # tickers = read_tickers('all')
-tickers = 'AAPL GOOG'
-start_date = '2021-05-03'
-# start_date = str(dt.date.today())
+tickers = 'AAPL AMD'
+#start_date = '2021-05-04'
+start_date = str(dt.date.today()- dt.timedelta(days=1))
 while True:
     resp = get_stocks(tickers, start_date)
     send_stock_to_spark(resp, conn)

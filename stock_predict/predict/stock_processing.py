@@ -45,23 +45,56 @@ def process_rdd(time, rdd):
     # Get spark sql singleton context from the current context
     sql_context = get_sql_context_instance(rdd.context)
     print('test1')
-    # convert the RDD to Row RDD
-    #row_rdd = rdd.map(lambda w: Row(hashtag=w[0], hashtag_count=w[1]))
-    #nrdd = rdd.map(lambda x: x.decode())
-    # print('test2')
+
     x = rdd.collect()
-    print(x)
-    # create a DF from the Row RDD
-    #hashtags_df = sql_context.createDataFrame(row_rdd)
+    #print(x)
+    #print(len(x))
     
-    # Register the dataframe as table
-    #hashtags_df.registerTempTable("hashtags")
-    # get the top 10 hashtags from the table using SQL and print them
-    #hashtag_counts_df = sql_context.sql("select hashtag, hashtag_count from hashtags order by hashtag_count desc limit 10")
-    #hashtag_counts_df.show()
-    #except:
-    #    e = sys.exc_info()[0]
-    #    print("Error: %s" % e)
+    x_dict = rdd.collectAsMap()
+    print(x_dict)
+    #print(type(x_dict))
+    
+    # open text file of dict and store as python dict
+    file = open("xs_dict.txt", "r")
+    contents = file.read()
+    past_data_seq = eval(contents)
+    file.close()
+    
+    print(type(past_data_seq))
+
+    for key, values in x_dict.items():
+        for main_key, main_values in past_data_seq.items():
+            if key == main_key:
+                print(key)
+                
+                # convert the latest minute's update value from string to dict type
+                x_dict_value_toDict = eval(x_dict[key])
+                print(type(x_dict_value_toDict))
+                
+                # repack as a list item to append to past_data_seq of the ticker
+                new_dict_value_list = [x_dict_value_toDict['Close'], x_dict_value_toDict['Volume']]
+                print(new_dict_value_list)
+
+                print(main_key)
+                print(past_data_seq[main_key][0])
+                
+                # drop the oldest element of the ticker's past_data_seq
+                new_one_ticker_past_data_seq = past_data_seq[main_key][0][1:]
+                print(len(new_one_ticker_past_data_seq))
+
+                # append the newest minute update from spark rdd stream into the ticker's past_data_seq
+                new_one_ticker_past_data_seq.append(new_dict_value_list)
+                print(len(new_one_ticker_past_data_seq))
+
+                past_data_seq[main_key][0] = new_one_ticker_past_data_seq
+                print(len(past_data_seq[main_key][0]))
+
+                print(past_data_seq[main_key][0])
+
+        #print(key)
+        #print(values)
+
+
 
 
 def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']):
@@ -112,9 +145,9 @@ def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['C
     
     last_60min = data_all.iloc[-67:-1,:]
     # print(last_60min)
-
-    # Iterate through dataframe
-    xs, ys = [], []
+    
+    # initialize xs as empty dictionary
+    xs = {}
 
     for t in tickers:
         if len(tickers) > 1:
@@ -122,42 +155,34 @@ def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['C
         else:
             data_sub = last_60min
         x_seq = generate_sequences(data_sub, target_min=target_min, seq_len=seq_len, feats=feats)
-        y = data_sub['Close'].values[seq_len + target_min:]
         
-        # Add to existing sequences
-        xs.append(x_seq)
-        ys.append(y)
-    xs = np.concatenate(xs, axis=0)
-    ys = np.concatenate(ys, axis=0)
+        x_seq = x_seq.tolist()
+        
+        xs[t] = x_seq
+        
+    # save the python dict of xs as a txt file
+    geeky_file = open('xs_dict.txt', 'wt')
+    data = str(xs)
+    geeky_file.write(data)
+    geeky_file.close()
     
-
-    print(xs.shape)
-    return xs, ys
+    return xs
 
 
-# tickers = read_tickers('all')
-tickers = ['AAPL']
-prev_day = dt.date.today() - dt.timedelta(days=1)
-xs, ys = get_prev_day_stocks(tickers, prev_day, target_min=5, seq_len=60, feats=['Close', 'Volume'])
+#tickers = read_tickers('all')
+tickers = ['AAPL', 'AMD']
+date_today = dt.date.today() - dt.timedelta(days=1)
+prev_day = date_today - dt.timedelta(days=1)
+xs = get_prev_day_stocks(tickers, prev_day, target_min=5, seq_len=60, feats=['Close', 'Volume'])
 
-print(xs)
+print(len(xs))
 
-# # to uncomment below to stream
-# split each tweet into words
-words = dataStream.map(lambda x: x.split('\n'))#.flatMap(lambda line: line.split(">"))
+words = dataStream.map(lambda line: (line.encode("ascii", "ignore").split(">")[0], line.encode("ascii", "ignore").split(">")[1]))
 
-# # filter the words to get only hashtags, then map each hashtag to be a pair of (hashtag,1)
-#ashtags = words.filter(lambda w: '#' in w).map(lambda x: (x, 1))
-# # add in the period 
-#hashtags = hashtags.reduceByKey(lambda x, y: x + y)
 # # print in the period 
-#hashtags.pprint(100)
 words.pprint(10)
 
-# # acculmulate the state
-#tags_totals = hashtags.updateStateByKey(aggregate_tags_count)
 # # do processing for each RDD generated in each interval
-#tags_totals.foreachRDD(process_rdd)
 words.foreachRDD(process_rdd)
 
 # start the streaming computation
