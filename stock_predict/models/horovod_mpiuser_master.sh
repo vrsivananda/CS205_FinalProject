@@ -14,7 +14,7 @@ HOROVOD_WITH_TENSORFLOW=1 HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_MPI=1 pip3.8 
 export PATH="/home/ubuntu/.local/bin:$PATH"
 export PATH="/home/mpiuser/.local/bin:$PATH"
 horovodrun --check-build
-horovodrun -np 1 -H localhost:1 python3 keras_mnist.py
+horovodrun -np 1 -H localhost:1 python3.8 keras_mnist.py
 
 ## Test MPI Set-Up
 wget https://harvard-iacs.github.io/2021-CS205/labs/I7_2/mpi_sc.c

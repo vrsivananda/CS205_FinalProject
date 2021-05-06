@@ -84,4 +84,4 @@ sudo apt-get install -y libopenmpi-dev
 HOROVOD_WITH_TENSORFLOW=1 HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_MPI=1 pip3 install --no-cache-dir horovod[tensorflow,keras]
 export PATH="/home/ubuntu/.local/bin:$PATH"
 horovodrun --check-build
-horovodrun -np 1 -H localhost:1 python3 keras_mnist.py
+horovodrun -np 1 -H localhost:1 python3.8 keras_mnist.py
