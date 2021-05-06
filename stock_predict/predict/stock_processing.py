@@ -106,11 +106,12 @@ def process_rdd(time, rdd):
                 # #I commened out this section first so that it runs
                 # #load in the saved model and predict price
                 
-                # loaded_toy_model = tf.keras.models.load_model("toy_model")
+                loaded_toy_model = tf.keras.models.load_model("toy_model.h5")
                 # print(type(loaded_toy_model))
                 # loaded_toy_model.summary()
-                # pred_price = loaded_toy_model.predict(new_one_ticker_past_data_seq)
-                # print(pred_price)
+                pred_price = loaded_toy_model.predict(new_one_ticker_past_data_seq)
+                print('The predicted price of '+  key+ ' is')
+                print(pred_price)
                 
     # save the python dict of xs as a txt file
     geeky_file = open('xs_dict.txt', 'wt')
