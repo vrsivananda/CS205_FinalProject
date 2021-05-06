@@ -135,7 +135,7 @@ master$ ./horovod_all.sh
 5. As with above, verify that all information is correct on each node for Keras MNIST.
 6. Run `export PATH="/home/ubuntu/.local/bin:$PATH"` in each node.
 7. Open an MPI port for all TCP in Inbound Security Rules. Allow the port range to be any port.
-8. Once the above has finished on each node, then on master node, upload `horovod_mpiuser_master.sh` to the *mpiuser* user of the master node, and execute the following command:
+8. Once the above has finished on each node, then on master node, upload `horovod_mpiuser_master.sh` and `keras_mnist.py` to the *mpiuser* user of the master node, and execute the following command:
 
 ```shel
 mpiuser@master ./horovod_mpiuser_master.sh
@@ -143,10 +143,10 @@ mpiuser@master ./horovod_mpiuser_master.sh
 
 This should run OpenMPI commands, producing basic output of 'Hello from process N', confirming the correct installation of OpenMPI.
 
-9. On each node, upload `horovod_mpiuser_nodes.sh`, and run the following command:
+9. On each node, upload `horovod_mpiuser_nodes.sh` and `keras_mnist.py`, and run the following command:
 
 ```she
-mpiuser@nodeN ./horovod_mpiuser_master.sh
+mpiuser@nodeN ./horovod_mpiuser_nodes.sh
 ```
 
 10. Execute the following commands in each node:
@@ -156,8 +156,8 @@ export PATH="/home/ubuntu/.local/bin:$PATH"
 export PATH="/home/mpiuser/.local/bin:$PATH"
 ```
 
-11. Follow step 10 of single GPU mode to retrieve training data.
-12. To run, execute the following command. Note that each additional node will be another host, and depends on naming convention. Two and four nodes are shown as examples.
+11. Follow step 10 of single GPU mode to retrieve training data, and copy to `cloud`.
+12. To run, execute the following command in the `cloud` directory. Note that each additional node will be another host, and depends on naming convention, and that the Python script and `training_data.npz` must both be in `cloud`. Two and four nodes are shown as examples.
 
 ```shell
 horovodrun -np 2 -H master:1,node1:1 python3 lstm_stocks.py
