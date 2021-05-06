@@ -102,8 +102,8 @@ def process_rdd(time, rdd):
 
                 
                 # #load in the saved model and predict price
-                
-                loaded_toy_model = tf.keras.models.load_model("toy_model.h5")
+                loaded_toy_model = tf.keras.models.load_model("trained_lstm_mod.h5")
+                # loaded_toy_model = tf.keras.models.load_model("toy_model.h5")
                 # print(type(loaded_toy_model))
                 # loaded_toy_model.summary()
                 pred_price = loaded_toy_model.predict(new_one_ticker_past_data_seq)
