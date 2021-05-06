@@ -65,34 +65,37 @@ def process_rdd(time, rdd):
     for key, values in x_dict.items():
         for main_key, main_values in past_data_seq.items():
             if key == main_key:
-                print(key)
+                #print(key)
                 
                 # convert the latest minute's update value from string to dict type
                 x_dict_value_toDict = eval(x_dict[key])
-                print(type(x_dict_value_toDict))
+                #print(type(x_dict_value_toDict))
                 
                 # repack as a list item to append to past_data_seq of the ticker
                 new_dict_value_list = [x_dict_value_toDict['Close'], x_dict_value_toDict['Volume']]
-                print(new_dict_value_list)
+                #print(new_dict_value_list)
 
-                print(main_key)
-                print(past_data_seq[main_key][0])
+                #print(main_key)
+                #print(past_data_seq[main_key][0])
                 
                 # drop the oldest element of the ticker's past_data_seq
                 new_one_ticker_past_data_seq = past_data_seq[main_key][0][1:]
-                print(len(new_one_ticker_past_data_seq))
+                #print(len(new_one_ticker_past_data_seq))
 
                 # append the newest minute update from spark rdd stream into the ticker's past_data_seq
                 new_one_ticker_past_data_seq.append(new_dict_value_list)
-                print(len(new_one_ticker_past_data_seq))
+                #print(len(new_one_ticker_past_data_seq))
 
                 past_data_seq[main_key][0] = new_one_ticker_past_data_seq
-                print(len(past_data_seq[main_key][0]))
+                #print(len(past_data_seq[main_key][0]))
 
-                print(past_data_seq[main_key][0])
-
-        #print(key)
-        #print(values)
+                #print(past_data_seq[main_key][0])
+                
+    # save the python dict of xs as a txt file
+    geeky_file = open('xs_dict.txt', 'wt')
+    data = str(past_data_seq)
+    geeky_file.write(data)
+    geeky_file.close()
 
 
 
