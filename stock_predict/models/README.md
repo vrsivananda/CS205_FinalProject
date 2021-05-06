@@ -10,15 +10,16 @@
    1. `sudo growpart /dev/nvme0n1 1` or `sudo growpart /dev/xvda 1`
    2. `sudo resize2fs /dev/nvme0n1p1` or `sudo resize2fs /dev/xvda`
    3. Confirm memory available via `df -h`. Resized part should be $> 128$ GB.
-5. Run the following command to ensure shell script compatible with Linux:
+5. Run the following commands to ensure shell script compatible with Linux:
 
 ```bash
+sudo chmod +x horovod_all.sh
 sed -i -e 's/\r$//' horovod_all.sh
 ```
 
 6. Execute ```./horovod_all.sh```
 7. Verify that TF, MPI, and NCCL are available from the output of `horovodrun --check-build` (this will run automatically in the shell, but provides a visual confirmation of installation).
-8. Verify Keras MNIST runs. This is a short proof of concept that the installation is correct, though the output can be quite verbose.
+8. Verify `keras_mnist.py` runs. This is a short proof of concept that the installation is correct, though the output can be quite verbose.
    1. With GPU enabled, first epoch should be approximately 6-10 seconds, second epoch approximately 3-6 seconds.
    2. GPU can also be confirmed by separately SSH-ing into the instance, and running `nvidia-smi` while script is running to verify GPU is working.
 9. If training data uploaded, execute the following commands:
@@ -46,7 +47,7 @@ horovodrun -np 1 -H localhost:1 python3 lstm_stocks.py
 The instructions for the multi-node mode are similar to the single GPU instance. First, however, we configure the MPI implementation on both nodes. This follows the infrastructure guide [here](https://harvard-iacs.github.io/2021-CS205/labs/I7_2/I7_2.pdf) at most steps, but is reproduced below for clarity.
 
 1. Spin up VPC Cluster, initializing VPC and subnet. Request the number of instances desired (i.e number of GPUs desired).
-2. Add Internet Gateway and attach to VPC. Use a destination of "0.0.0.0/0" and a target of the VPC.
+2. Add Internet Gateway and attach to VPC. Use a destination of `0.0.0.0/0` and a target of the VPC.
 3. Decide on which node is the manager node and which are workers. We have found it helpful to write the public & private IPs down (the private IPs won't change) to keep track of how things are working. Add the private IPs of each node to the `/etc/hosts` file, naming `master` and `node1`, `node2`, etc.
 4. Configure MPI User Accounts. Note that the following instructions come from AWS Infrastructure Guide #7, Harvard CS205, Spring 2021. `master$` indicates the master node and `nodeN$` indicates a command to be run on each worker node.
 
@@ -60,7 +61,7 @@ nodeN$ sudo adduser mpiuser sudo
 - Add SSH to all nodes
 
 ```shell
-sudo /etc/ssh/sshd_config
+sudo vi /etc/ssh/sshd_config
 ```
 
 and change lines 55-56 to be:
@@ -88,7 +89,7 @@ mpiuser@master$ ssh mpiuser@nodeN
 - Generate SSH pairs on each node, copying to all other nodes (i.e. the second command must be repeated for all N nodes). Accept the default values.
 
 ```shell
-mpiuser@master$ ssh-keygen 
+mpiuser@master$ ssh-keygen
 mpiuser@master$ ssh-copy-id mpiuser@nodeN
 ```
 
@@ -156,7 +157,7 @@ export PATH="/home/mpiuser/.local/bin:$PATH"
 ```
 
 11. Follow step 10 of single GPU mode to retrieve training data, and copy to `cloud`.
-12. To run, execute the following command in the `cloud` directory. Note that each additional node will be another host, and depends on naming convention, and that the Python script and `training_data.npz` must both be in `cloud`. Two and four nodes are shown as examples. 
+12. To run, execute the following command in the `cloud` directory. Note that each additional node will be another host, and depends on naming convention, and that the Python script and `training_data.npz` must both be in `cloud`. Two and four nodes are shown as examples.
 
 ```shell
 horovodrun -np 2 -H master:1,node1:1 python3 lstm_stocks.py
@@ -169,4 +170,3 @@ horovodrun -np 2 -H master:1,node1:1,node2:1,node3:1 python3 lstm_stocks.py
 horovodrun -np 2 -H localhost:2 python3 lstm_stocks.py
 horovodrun -np 8 -H master:2,node1:2,node2:2,node3:2 python3 lstm_stocks.py
 ```
-

@@ -27,4 +27,3 @@ mpicc mpi_sch.c -o mpi_sch
 cp mpi_sch cloud
 cd cloud
 mpirun -np 4 -H master,node1,node2,node3 ./mpi_sch
-
