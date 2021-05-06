@@ -66,7 +66,6 @@ sudo apt install libnccl2=2.9.6-1+cuda11.0 libnccl-dev=2.9.6-1+cuda11.0
 # Install pip
 sudo apt install -y python3-pip
 pip3 install --upgrade pip
-#python3.8 -m pip install --upgrade pip
 # ^ Stuff on pip needs to be installed like this instead for Python3.8 to find them
 
 # Install tensorflow
