@@ -201,7 +201,8 @@ xs = get_prev_day_stocks(tickers, prev_day, target_min=5, seq_len=60, feats=['Cl
 
 #print(len(xs))
 
-words = dataStream.map(lambda line: (line.encode("ascii", "ignore").split(">")[0], line.encode("ascii", "ignore").split(">")[1]))
+#words = dataStream.map(lambda line: (line.encode("ascii", "ignore").split(">")[0], line.encode("ascii", "ignore").split(">")[1]))
+words = dataStream.map(lambda line: (line.split(">")[0], line.split(">")[1]))
 
 # # print in the period 
 print("datastream RDD received: ")
