@@ -67,7 +67,7 @@ def get_stocks(tickers, start_date):
     ticker_dict = {}
     
     for i in range(len(x_columns)):
-        new_x = x.iloc[-1,:][x_columns[i]][['Close', 'Volume']].to_dict()
+        new_x = x.iloc[-3,:][x_columns[i]][['Close', 'Volume']].to_dict()
         # print(new_x)
     
         ticker_dict[x_columns[i]] = new_x
@@ -121,8 +121,8 @@ print("Connected... Starting getting stocks.")
 # tickers = read_tickers('all')
 tickers = 'AAPL AMD'
 #start_date = '2021-05-04'
-start_date = str(dt.date.today()- dt.timedelta(days=1))
+start_date = str(dt.date.today()) # - dt.timedelta(days=1))
 while True:
     resp = get_stocks(tickers, start_date)
     send_stock_to_spark(resp, conn)
-    time.sleep(45)
+    time.sleep(60)

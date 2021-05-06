@@ -17,9 +17,12 @@ import numpy as np
 import pandas as pd
 
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, LSTM
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.optimizers import Adam, SGD
+#from tensorflow.keras.layers import Dense, Flatten, Conv2D, LSTM
+#from tensorflow.keras.models import Sequential, Model
+#from tensorflow.keras.optimizers import Adam, SGD
+
+## tensorflow WARNING, and ERROR messages are not printed
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 # create spark configuration
 conf = SparkConf()
@@ -29,9 +32,7 @@ sc = SparkContext(conf=conf)
 sc.setLogLevel("ERROR")
 # creat the Streaming Context from the above spark context with window size n seconds
 ssc = StreamingContext(sc, 30)
-# setting a checkpoint to allow RDD recovery
-#ssc.checkpoint("checkpoint_StockApp")
-# read data from port 9009
+# read datastream from socket
 dataStream = ssc.socketTextStream("localhost",9009)
 
 
@@ -49,15 +50,13 @@ def process_rdd(time, rdd):
     #try:
     # Get spark sql singleton context from the current context
     sql_context = get_sql_context_instance(rdd.context)
-    print('test1')
+    print('Processing RDD and Predicting Stock Price')
 
-    x = rdd.collect()
+    #x = rdd.collect()
     #print(x)
-    #print(len(x))
     
     x_dict = rdd.collectAsMap()
-    print(x_dict)
-    #print(type(x_dict))
+    #print(x_dict)
     
     # open text file of dict and store as python dict
     file = open("xs_dict.txt", "r")
@@ -99,19 +98,19 @@ def process_rdd(time, rdd):
                 # change the type of the single ticker sequence into a numpy array
                 new_one_ticker_past_data_seq = np.array(new_one_ticker_past_data_seq)
                 new_one_ticker_past_data_seq =np.reshape(new_one_ticker_past_data_seq, (1,60,2))
-                print(new_one_ticker_past_data_seq.shape)
+                #print(new_one_ticker_past_data_seq.shape)
 
                 
-                # #this section has problem loading the saved model. it seemed to work locally, but somehow didnt work on AWS. 
-                # #I commened out this section first so that it runs
                 # #load in the saved model and predict price
                 
                 loaded_toy_model = tf.keras.models.load_model("toy_model.h5")
                 # print(type(loaded_toy_model))
                 # loaded_toy_model.summary()
                 pred_price = loaded_toy_model.predict(new_one_ticker_past_data_seq)
-                print('The predicted price of '+  key+ ' is')
-                print(pred_price)
+                
+                print("----------- %s -----------" % str(time))
+                print('The predicted price of '+  key+ ' is '+ str(pred_price[0][0]))
+                #print(pred_price[0][0])
                 
     # save the python dict of xs as a txt file
     geeky_file = open('xs_dict.txt', 'wt')
@@ -196,15 +195,16 @@ def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['C
 
 #tickers = read_tickers('all')
 tickers = ['AAPL', 'AMD']
-date_today = dt.date.today() - dt.timedelta(days=1)
+date_today = dt.date.today() # - dt.timedelta(days=1)
 prev_day = date_today - dt.timedelta(days=1)
 xs = get_prev_day_stocks(tickers, prev_day, target_min=5, seq_len=60, feats=['Close', 'Volume'])
 
-print(len(xs))
+#print(len(xs))
 
 words = dataStream.map(lambda line: (line.encode("ascii", "ignore").split(">")[0], line.encode("ascii", "ignore").split(">")[1]))
 
 # # print in the period 
+print("datastream RDD received: ")
 words.pprint(10)
 
 # # do processing for each RDD generated in each interval
