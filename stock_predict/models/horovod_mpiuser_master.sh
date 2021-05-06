@@ -6,6 +6,7 @@ python3.8 -m pip3 install --upgrade pip
 
 # Install tensorflow
 #python3.8 -m pip3 install --upgrade tensorflow
+export PATH="/home/mpiuser/.local/bin:$PATH"
 pip3.8 install --upgrade tensorflow
 python3.8 -c "import tensorflow as tf;print(tf.reduce_sum(tf.random.normal([1000, 1000])))"
 
