@@ -61,7 +61,7 @@ nodeN$ sudo adduser mpiuser sudo
 - Add SSH to all nodes
 
 ```shell
-sudo /etc/ssh/sshd_config
+sudo vi /etc/ssh/sshd_config
 ```
 
 and change lines 55-56 to be:
