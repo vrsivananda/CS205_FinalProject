@@ -16,6 +16,11 @@ import yfinance as yf
 import numpy as np
 import pandas as pd
 
+import tensorflow as tf
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, LSTM
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.optimizers import Adam, SGD
+
 # create spark configuration
 conf = SparkConf()
 conf.setAppName("StockStreamApp")
@@ -60,7 +65,7 @@ def process_rdd(time, rdd):
     past_data_seq = eval(contents)
     file.close()
     
-    print(type(past_data_seq))
+    #print(type(past_data_seq))
 
     for key, values in x_dict.items():
         for main_key, main_values in past_data_seq.items():
@@ -90,6 +95,22 @@ def process_rdd(time, rdd):
                 #print(len(past_data_seq[main_key][0]))
 
                 #print(past_data_seq[main_key][0])
+                
+                # change the type of the single ticker sequence into a numpy array
+                new_one_ticker_past_data_seq = np.array(new_one_ticker_past_data_seq)
+                new_one_ticker_past_data_seq =np.reshape(new_one_ticker_past_data_seq, (1,60,2))
+                print(new_one_ticker_past_data_seq.shape)
+
+                
+                # #this section has problem loading the saved model. it seemed to work locally, but somehow didnt work on AWS. 
+                # #I commened out this section first so that it runs
+                # #load in the saved model and predict price
+                
+                # loaded_toy_model = tf.keras.models.load_model("toy_model")
+                # print(type(loaded_toy_model))
+                # loaded_toy_model.summary()
+                # pred_price = loaded_toy_model.predict(new_one_ticker_past_data_seq)
+                # print(pred_price)
                 
     # save the python dict of xs as a txt file
     geeky_file = open('xs_dict.txt', 'wt')
