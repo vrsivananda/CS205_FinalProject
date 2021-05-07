@@ -74,7 +74,7 @@ if hvd.rank() == 0:
 
 
 ## ADD MODEL HYPERPARAMETERS
-BATCH_SIZE = 64
+BATCH_SIZE = 256
 VALIDATION_SPLIT = 0.2
 STEPS_PER_EPOCH = len(y_train)*(1-VALIDATION_SPLIT) // (BATCH_SIZE * hvd.size())
 if hvd.rank() == 0:
@@ -82,7 +82,7 @@ if hvd.rank() == 0:
     print(f'Train size: {int(len(y_train)*(1-VALIDATION_SPLIT))}')
     print(f'Steps per epoch: {int(STEPS_PER_EPOCH)}')
 h = mod.fit(x=x_train, y=y_train,
-            epochs=2,
+            epochs=20,
             batch_size=BATCH_SIZE,
             steps_per_epoch=STEPS_PER_EPOCH,
             validation_split=VALIDATION_SPLIT,
