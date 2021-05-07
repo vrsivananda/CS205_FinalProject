@@ -30,6 +30,8 @@ sudo curl -O https://downloads.apache.org/spark/spark-3.1.1/spark-3.1.1-bin-hado
 sudo tar xvf ./spark-3.1.1-bin-hadoop2.7.tgz
 sudo mkdir /usr/local/spark
 sudo cp -r spark-3.1.1-bin-hadoop2.7/* /usr/local/spark
-echo 'export PATH="$PATH:/usr/local/spark/bin"' >> ~/.profile
 
-source ~/.profile
+#echo 'export PATH="/usr/sbin:/usr/bin:/sbin:/bin"' >> ~/.profile
+#echo 'export PATH="$PATH:/usr/local/spark/bin"' >> ~/.profile
+
+#source ~/.profile

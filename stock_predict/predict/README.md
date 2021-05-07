@@ -1,10 +1,10 @@
-Instructions (to finish up)
+Instructions
 
 1. Spin up t2.2xlarge AWS instance running Ubuntu 20.04 Linux distro
 
 2. Upload `stock_client.py`, `stock_processing.py`, `prediction_setup.sh`, `prediction_requirements.txt`
 
-3. Add internal IP addresses to `/etc/hosts`
+3. Add internal IP addresses to `/etc/hosts` , using the command `sudo vim /etc/hosts`
 
 4. Execute:
 
@@ -12,9 +12,15 @@ Instructions (to finish up)
    ./prediction_setup.sh
    ````
 
-5. Note: may need to re-export PATH to remove `/home/ubuntu/.local/bin`
+5. Update the `~/.profile` to change the paths, using `vim ~/.profile`, according to the instructions below: 
 
-   1. If above is necessary, then execute `source ~/.profile`
+Add the following paths:
+`export PATH="/usr/sbin:/usr/bin:/sbin:/bin"`
+`export PATH="$PATH:/usr/local/spark/bin"` 
+
+Note: may need to remove the PATH for `/home/ubuntu/.local/bin`
+
+After editing the `~/.profile` file, then execute `source ~/.profile`
 
 6. Test setup with `run-example SparkPi 10`
 
