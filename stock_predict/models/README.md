@@ -49,6 +49,9 @@ The instructions for the multi-node mode are similar to the single GPU instance.
 1. Spin up VPC Cluster, initializing VPC and subnet. Request the number of instances desired (i.e number of GPUs desired).
 2. Add Internet Gateway and attach to VPC. Use a destination of `0.0.0.0/0` and a target of the VPC.
 3. Decide on which node is the manager node and which are workers. We have found it helpful to write the public & private IPs down (the private IPs won't change) to keep track of how things are working. Add the private IPs of each node to the `/etc/hosts` file, naming `master` and `node1`, `node2`, etc.
+```shell
+sudo vi /etc/hosts
+```
 4. Configure MPI User Accounts. Note that the following instructions come from AWS Infrastructure Guide #7, Harvard CS205, Spring 2021. `master$` indicates the master node and `nodeN$` indicates a command to be run on each worker node.
 
 ```shell
@@ -116,7 +119,7 @@ nodeN$ su - mpiuser
 mpiuser@nodeN$ mkdir cloud
 ```
 
-- Add inbound rule to security group, allowing `Type = NFS` and Range = `0.0.0.0/0`
+- Add inbound rule to security group, allowing Type = `NFS` and Source = `0.0.0.0/0`
 - Mount shared directory in each node, confirm file is in system:
 
 ```shell
