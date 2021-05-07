@@ -1,4 +1,4 @@
 *.npy
 *.npz
-
 *checkpoint*
+*parquet*

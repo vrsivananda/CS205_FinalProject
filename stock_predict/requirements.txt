@@ -1,6 +1,8 @@
 numpy==1.19.2
 yfinance
 matplotlib
+tensorflow-estimator==2.2.0
+tensorboard==2.2.0
 tensorflow==2.2.0
 keras
 pyspark==3.0.0
