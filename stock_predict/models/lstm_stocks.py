@@ -14,10 +14,11 @@ if gpus:
 
 data = np.load('training_data.npz')
 
-x_train = tf.convert_to_tensor(data['x_train'])
-y_train = tf.convert_to_tensor(data['y_train'])
+x_train = data['x_train']
+y_train = data['y_train']
 
 
+# Subset data to be non-missing
 xmask = np.max(np.isnan(x_train).astype(int), axis=(1,2)) == 0
 x_train = x_train[xmask]
 y_train = y_train[xmask]
@@ -27,19 +28,24 @@ x_train = x_train[ymask]
 y_train = y_train[ymask]
 
 # Create training, test sets
-#train_size = 0.75
-#count = int(len(y_train)*(1-train_size))
-#idx = np.random.choice(len(y_train), count, replace=False)
-#nonidx = np.array([i for i in range(len(y_train)) if i not in idx])
-#x_test = x_train[idx]
-#y_test = y_train[idx]
-#x_train = x_train[] 
+train_size = 0.9
+count = int(len(y_train)*(1-train_size))
+idx = np.random.choice(len(y_train), count, replace=False)
+nonidx = np.setdiff1d(np.arange(len(y_train)), idx)
+
+x_test = x_train[idx]
+y_test = y_train[idx]
+x_train = x_train[nonidx]
+y_train = y_train[nonidx]
+
+x_train = tf.convert_to_tensor(x_train)
+y_train = tf.convert_to_tensor(y_train)
+x_test = tf.convert_to_tensor(x_test)
+y_test = tf.convert_to_tensor(y_test)
 
 
-
+## Create model architecture
 mod = tf.keras.Sequential([
-    #tf.keras.layers.LSTM(16, return_sequences=True),
-    #tf.keras.layers.Dropout(0.2),
     tf.keras.layers.LSTM(50),
     tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(32),
@@ -67,11 +73,23 @@ if hvd.rank() == 0:
     callbacks.append(tf.keras.callbacks.ModelCheckpoint('./checkpoint-{epoch}.h5'))
 
 
+## ADD MODEL HYPERPARAMETERS
+BATCH_SIZE = 64
+VALIDATION_SPLIT = 0.2
+STEPS_PER_EPOCH = len(y_train)*(1-VALIDATION_SPLIT) // (BATCH_SIZE * hvd.size())
+if hvd.rank() == 0:
+    print(f'Horovod Size: {hvd.size()}')
+    print(f'Train size: {int(len(y_train)*(1-VALIDATION_SPLIT))}')
+    print(f'Steps per epoch: {int(STEPS_PER_EPOCH)}')
 h = mod.fit(x=x_train, y=y_train,
-            epochs=10,
-            batch_size=64,
-            validation_split=0.25,
+            epochs=2,
+            batch_size=BATCH_SIZE,
+            steps_per_epoch=STEPS_PER_EPOCH,
+            validation_split=VALIDATION_SPLIT,
             verbose=1 if hvd.rank() == 0 else 0)
 
-# Save out model for transfer to prediction phase
-mod.save('trained_lstm_mod')
+# Evaluate model to ensure accuracy
+if hvd.rank() == 0:
+    mod.evaluate(x=x_test, y=y_test, batch_size=BATCH_SIZE, verbose=1)
+    # Save out model for transfer to prediction phase
+    mod.save('trained_lstm_mod.h5')
