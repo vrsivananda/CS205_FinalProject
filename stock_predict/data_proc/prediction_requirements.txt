@@ -2,3 +2,4 @@ numpy==1.19.2
 yfinance==0.1.59
 matplotlib=3.4.1
 pyspark==3.0.0
+tensorflow==2.4.1
