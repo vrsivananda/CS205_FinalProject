@@ -12,10 +12,12 @@ Instructions
    ./prediction_setup.sh
    ````
 
-5. Update the `~/.profile` to change the paths, using `vim ~/.profile`, according to the instructions below: 
+5. Update the `~/.profile` file to change the paths, using `vim ~/.profile`, according to the instructions below: 
 
 Add the following paths:
+
 `export PATH="/usr/sbin:/usr/bin:/sbin:/bin"`
+
 `export PATH="$PATH:/usr/local/spark/bin"` 
 
 Note: may need to remove the PATH for `/home/ubuntu/.local/bin`
