@@ -128,28 +128,34 @@ nodeN$ df -h
 ```
 
 2. Now we differ from the infrastructure guide. To install all relevant packages, transfer `horovod_all.sh` to each node.
-3. Expand volume on each node. See Step 4 of Single GPU mode, repeat on each instance and confirm memory available.
+3. Expand volume on each node. See Steps 2 & 4 of Single GPU mode, repeat on each instance and confirm memory available.
 4. Execute the following on each node (& master). Given the time to run this, we *highly* suggest doing this in parallel:
 
 ```shell
+master$ sudo chmod +x horovod_all.sh
+master$ sed -i -e 's/\r$//' horovod_all.sh
 master$ ./horovod_all.sh
 ```
 
 5. As with above, verify that all information is correct on each node for Keras MNIST.
 6. Run `export PATH="/home/ubuntu/.local/bin:$PATH"` in each node.
-7. Open an MPI port for all TCP in Inbound Security Rules. Allow the port range to be any port.
+7. Open an MPI port where Type = `All TCP` in Inbound Security Rules, with Source = `0.0.0.0/0`. Allow the port range to be any port.
 8. Once the above has finished on each node, then on master node, upload `horovod_mpiuser_master.sh` and `keras_mnist.py` to the *mpiuser* user of the master node, and execute the following command:
 
-```shel
-mpiuser@master ./horovod_mpiuser_master.sh
+```shell
+mpiuser@master$ sudo chmod +x horovod_mpiuser_master.sh
+mpiuser@master$ sed -i -e 's/\r$//' horovod_mpiuser_master.sh
+mpiuser@master$ ./horovod_mpiuser_master.sh
 ```
 
 This should run OpenMPI commands, producing basic output of 'Hello from process N', confirming the correct installation of OpenMPI.
 
 9. On each node, upload `horovod_mpiuser_nodes.sh` and `keras_mnist.py`, and run the following command:
 
-```she
-mpiuser@nodeN ./horovod_mpiuser_nodes.sh
+```shell
+mpiuser@nodeN$ sudo chmod +x horovod_mpiuser_nodes.sh
+mpiuser@nodeN$ sed -i -e 's/\r$//' horovod_mpiuser_nodes.sh
+mpiuser@nodeN$ ./horovod_mpiuser_nodes.sh
 ```
 
 10. Execute the following commands in each node:
@@ -170,6 +176,6 @@ horovodrun -np 2 -H master:1,node1:1,node2:1,node3:1 python3 lstm_stocks.py
 13. If running on many GPUs on the same node, the following commands implements it correctly:
 
 ```shell
-horovodrun -np 2 -H localhost:2 python3 lstm_stocks.py
-horovodrun -np 8 -H master:2,node1:2,node2:2,node3:2 python3 lstm_stocks.py
+horovodrun -np 2 -H localhost:2 python3.8 lstm_stocks.py
+horovodrun -np 8 -H master:2,node1:2,node2:2,node3:2 python3.8 lstm_stocks.py
 ```

@@ -1,7 +1,7 @@
 # Install pip
 sudo apt install -y python3-pip
 #pip3 install --upgrade pip
-python3.8 -m pip3 install --upgrade pip
+python3.8 -m pip install --upgrade pip
 # ^ Stuff on pip needs to be installed like this instead for Python3.8 to find them
 
 # Install tensorflow
