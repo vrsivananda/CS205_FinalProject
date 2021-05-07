@@ -44,8 +44,10 @@ def get_sql_context_instance(spark_context):
         globals()['sqlContextSingletonInstance'] = SQLContext(spark_context)
     return globals()['sqlContextSingletonInstance']
 
-def process_rdd(time, rdd):
-    print("----------- %s -----------" % str(time))
+def process_rdd(time_in, rdd):
+    print("----------- %s -----------" % str(time_in))
+
+    time_start = time.time()
 
     #try:
     # Get spark sql singleton context from the current context
@@ -108,7 +110,7 @@ def process_rdd(time, rdd):
                 # loaded_toy_model.summary()
                 pred_price = loaded_toy_model.predict(new_one_ticker_past_data_seq)
                 
-                print("----------- %s -----------" % str(time))
+                print("----------- %s -----------" % str(time_in))
                 print('The predicted price of '+  key+ ' is '+ str(pred_price[0][0]))
                 #print(pred_price[0][0])
                 
@@ -117,7 +119,10 @@ def process_rdd(time, rdd):
     data = str(past_data_seq)
     geeky_file.write(data)
     geeky_file.close()
-
+    
+    time_end = time.time()
+    time_taken = time_end - time_start
+    print("Time taken to process RDD & Predict Stock is " + str(time_taken) + "s")
 
 
 
@@ -133,12 +138,17 @@ def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']
     Returns
         seqs: numpy array of sequences (n_seqs, seq_len, len(feats))
     """
-    for i, v in enumerate(range(target_min, len(data)-seq_len)):
-        if i == 0:
-            x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
-        else:
-            z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
-            x = np.concatenate((x, z), axis=0)
+    if ((len(data)-seq_len) - target_min ) > 0:
+        for i, v in enumerate(range(target_min, len(data)-seq_len)):
+            if i == 0:
+                x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+            else:
+                z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+                x = np.concatenate((x, z), axis=0)
+    else:
+        x = np.ones((1, seq_len, len(feats)))
+    
+    #print(x.shape)
     return x
 
 def read_tickers(which=None):
@@ -167,6 +177,8 @@ def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['C
     data_all = yf.download(tickers, interval='1m', start=start_date, progress=False, group_by='ticker')
     # print(data_all)
     
+    data_all.dropna(inplace=True)
+
     last_60min = data_all.iloc[-67:-1,:]
     # print(last_60min)
     
@@ -178,6 +190,7 @@ def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['C
             data_sub = last_60min[t]
         else:
             data_sub = last_60min
+        # print(t)
         x_seq = generate_sequences(data_sub, target_min=target_min, seq_len=seq_len, feats=feats)
         
         x_seq = x_seq.tolist()
@@ -193,18 +206,17 @@ def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['C
     return xs
 
 
-#tickers = read_tickers('all')
-tickers = ['AAPL', 'AMD']
+tickers = read_tickers('all')
+tickers = tickers[0:32]
+#tickers = ['AAPL', 'AMD', 'GOOG']
 date_today = dt.date.today() # - dt.timedelta(days=1)
 prev_day = date_today - dt.timedelta(days=1)
 xs = get_prev_day_stocks(tickers, prev_day, target_min=5, seq_len=60, feats=['Close', 'Volume'])
 
-#print(len(xs))
-
 #words = dataStream.map(lambda line: (line.encode("ascii", "ignore").split(">")[0], line.encode("ascii", "ignore").split(">")[1]))
 words = dataStream.map(lambda line: (line.split(">")[0], line.split(">")[1]))
 
-# # print in the period 
+# # print in the period
 print("datastream RDD received: ")
 words.pprint(10)
 

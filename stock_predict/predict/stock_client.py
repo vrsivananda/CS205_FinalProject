@@ -59,16 +59,20 @@ def send_stock_to_spark(http_resp, tcp_connection):
 
 def get_stocks(tickers, start_date):
     x = yf.download(tickers, interval='1m', start=start_date, progress=False, group_by='ticker')
-    # print(x)
-    
+    # drop the nan values from the read off yfinance data
+    x.dropna(inplace = True)
+
     x_columns = x.columns.levels[0].to_list()
     # print(x_columns)
     
     ticker_dict = {}
     
     for i in range(len(x_columns)):
-        new_x = x.iloc[-3,:][x_columns[i]][['Close', 'Volume']].to_dict()
-        # print(new_x)
+        if len(x)>0:
+            new_x = x.iloc[-1,:][x_columns[i]][['Close', 'Volume']].to_dict()
+            # print(new_x)
+        else:
+            new_x = {'Close': 0, 'Volume':0}
     
         ticker_dict[x_columns[i]] = new_x
     
@@ -118,8 +122,9 @@ print("Waiting for TCP connection...")
 conn, addr = s.accept()
 print("Connected... Starting getting stocks.")
 
-# tickers = read_tickers('all')
-tickers = 'AAPL AMD'
+tickers = read_tickers('all')
+tickers = tickers[0:32]
+#tickers = 'AAPL AMD GOOG'
 #start_date = '2021-05-04'
 start_date = str(dt.date.today()) # - dt.timedelta(days=1))
 while True:
