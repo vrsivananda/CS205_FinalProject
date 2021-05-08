@@ -78,30 +78,30 @@ def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['C
     
     return xs
 
-
-
-
-tickers = read_tickers('all')
-tickers = tickers[0:32]
-#tickers = ['AAPL', 'AMD', 'GOOG']
-date_today = dt.date.today() # - dt.timedelta(days=1)
-prev_day = date_today - dt.timedelta(days=1)
-xs = get_prev_day_stocks(tickers, prev_day, target_min=5, seq_len=60, feats=['Close', 'Volume'])
-
-# create spark configuration
-conf = SparkConf()
-conf.setAppName("StockStreamApp")
-# create spark instance with the above configuration
-sc = SparkContext(conf=conf)
-sc.setLogLevel("ERROR")
-# creat the Streaming Context from the above spark context with window size n seconds
-ssc = StreamingContext(sc, 30)
-# read datastream from socket
-dataStream = ssc.socketTextStream("localhost",9009)
-
-
-def aggregate_tags_count(new_values, total_sum):
-    return sum(new_values) + (total_sum or 0)
+def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']):
+    """Given a subset of data for a particular ticker and date, 
+    will return sequences of the appropriate length
+    
+    Args
+        data: subset dataframe
+        target_min (optional): target minutes ahead of end of sequence
+        seq_len (optional): sequence length to consider
+        feats (optional): list of features to keep
+    Returns
+        seqs: numpy array of sequences (n_seqs, seq_len, len(feats))
+    """
+    if ((len(data)-seq_len) - target_min ) > 0:
+        for i, v in enumerate(range(target_min, len(data)-seq_len)):
+            if i == 0:
+                x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+            else:
+                z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
+                x = np.concatenate((x, z), axis=0)
+    else:
+        x = np.ones((1, seq_len, len(feats)))
+    
+    #print(x.shape)
+    return x
 
 def get_sql_context_instance(spark_context):
     if ('sqlContextSingletonInstance' not in globals()):
@@ -129,12 +129,24 @@ def predict_prices(time_in, rdd):
     contents = file.read()
     past_data_seq = eval(contents)
     file.close()
-    
-    #print(type(past_data_seq))
-    # #load in the saved model and predict price
-    model = tf.keras.models.load_model("trained_lstm_mod.h5")
-    
 
+    # Convert output to dictionary then return appropriately
+    # Return (ticker np.array([Close, Volume])
+    #rdd_array = rdd.map(lambda t: (t[0], eval(t[1]))).map(lambda t: (t[0], np.array([float(t[1]['Close']), 
+    #                                                                                float(t[1]['Volume'])])))
+
+    # Add new data to 'current data' = past_data_seq[main_key][0][1:]
+    #rdd_pred_array = rdd_array.map(lambda t: (t[0], t[1], np.concatenate([past_data_seq[t[0]][0][1:], t[1].reshape(1,2)], axis=0)))
+
+    #collected_preds = rdd_pred_array.collect()
+    #for x in collected_preds:
+    #    tick, new_seq, pred_pt = x
+    #    # Add old sequence back to dictionary
+    #    past_data_seq[tick][0] = new_seq
+    #    # Make prediction
+    #    pred = model.predict(pred_pt.reshape(1,60,2))
+    #    print(f'The predicted price of {tick} is $ {pred}')
+    
     for key, values in x_dict.items():
         for main_key, main_values in past_data_seq.items():
             if key == main_key:
@@ -143,24 +155,25 @@ def predict_prices(time_in, rdd):
                 # convert the latest minute's update value from string to dict type
                 x_dict_value_toDict = eval(x_dict[key])
                 #print(type(x_dict_value_toDict))
-                
+    #            
                 # repack as a list item to append to past_data_seq of the ticker
                 new_dict_value_list = [x_dict_value_toDict['Close'], x_dict_value_toDict['Volume']]
                 #print(new_dict_value_list)
-
-                #print(main_key)
-                #print(past_data_seq[main_key][0])
-                
-                # drop the oldest element of the ticker's past_data_seq
+    
+    
+    #           #print(main_key)
+    #            #print(past_data_seq[main_key][0])
+    #            
+    #            # drop the oldest element of the ticker's past_data_seq
                 new_one_ticker_past_data_seq = past_data_seq[main_key][0][1:]
-                #print(len(new_one_ticker_past_data_seq))
-
-                # append the newest minute update from spark rdd stream into the ticker's past_data_seq
+    #            #print(len(new_one_ticker_past_data_seq))
+    #
+    #            # append the newest minute update from spark rdd stream into the ticker's past_data_seq
                 new_one_ticker_past_data_seq.append(new_dict_value_list)
-                #print(len(new_one_ticker_past_data_seq))
-
+    #            #print(len(new_one_ticker_past_data_seq))
+    #
                 past_data_seq[main_key][0] = new_one_ticker_past_data_seq
-                #print(len(past_data_seq[main_key][0]))
+    #            #print(len(past_data_seq[main_key][0]))
 
                 #print(past_data_seq[main_key][0])
                 
@@ -169,16 +182,11 @@ def predict_prices(time_in, rdd):
                 new_one_ticker_past_data_seq =np.reshape(new_one_ticker_past_data_seq, (1,60,2))
                 #print(new_one_ticker_past_data_seq.shape)
 
-                
-                
-                # loaded_toy_model = tf.keras.models.load_model("toy_model.h5")
-                # print(type(loaded_toy_model))
-                # loaded_toy_model.summary()
                 pred_price = model.predict(new_one_ticker_past_data_seq)
                 
-                print("----------- %s -----------" % str(time_in))
+                #print("----------- %s -----------" % str(time_in))
                 print('The predicted price of '+  key+ ' is '+ str(pred_price[0][0]))
-                #print(pred_price[0][0])
+                
                 
     # save the python dict of xs as a txt file
     geeky_file = open('xs_dict.txt', 'wt')
@@ -192,43 +200,40 @@ def predict_prices(time_in, rdd):
 
 
 
-def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']):
-    """Given a subset of data for a particular ticker and date, 
-    will return sequences of the appropriate length
-    
-    Args
-        data: subset dataframe
-        target_min (optional): target minutes ahead of end of sequence
-        seq_len (optional): sequence length to consider
-        feats (optional): list of features to keep
-    Returns
-        seqs: numpy array of sequences (n_seqs, seq_len, len(feats))
-    """
-    if ((len(data)-seq_len) - target_min ) > 0:
-        for i, v in enumerate(range(target_min, len(data)-seq_len)):
-            if i == 0:
-                x = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
-            else:
-                z = np.expand_dims(data[feats].values[i:i+seq_len, :], axis=0)
-                x = np.concatenate((x, z), axis=0)
-    else:
-        x = np.ones((1, seq_len, len(feats)))
-    
-    #print(x.shape)
-    return x
+if __name__ == '__main__':
+    tickers = read_tickers('all')
 
-#words = dataStream.map(lambda line: (line.encode("ascii", "ignore").split(">")[0], line.encode("ascii", "ignore").split(">")[1]))
-words = dataStream.map(lambda line: (line.split(">")[0], line.split(">")[1]))
+    tickers = tickers[0:100]
+    #tickers = ['AAPL', 'AMD', 'GOOG']
+    date_today = dt.date.today() # - dt.timedelta(days=1)
+    prev_day = date_today - dt.timedelta(days=1)
+    xs = get_prev_day_stocks(tickers, prev_day, target_min=5, seq_len=60, feats=['Close', 'Volume'])
 
-# # print in the period
-print("datastream RDD received: ")
-words.pprint(10)
+    # Load in model globally
+    model = tf.keras.models.load_model("trained_lstm_mod.h5")
 
-# # do processing for each RDD generated in each interval
-words.foreachRDD(predict_prices)
+    # create spark configuration
+    conf = SparkConf()
+    conf.setAppName("StockStreamApp")
+    # create spark instance with the above configuration
+    sc = SparkContext(conf=conf)
+    sc.setLogLevel("ERROR")
+    # creat the Streaming Context from the above spark context with window size n seconds
+    ssc = StreamingContext(sc, 10)#30)
+    # read datastream from socket
+    dataStream = ssc.socketTextStream("localhost",9009)
 
-# start the streaming computation
-ssc.start()
-# wait for the streaming to finish
-ssc.awaitTermination()
+    words = dataStream.map(lambda line: (line.split(">")[0], line.split(">")[1]))
+
+    # # print in the period
+    print("datastream RDD received: ")
+    words.pprint(10)
+
+    # # do processing for each RDD generated in each interval
+    words.foreachRDD(predict_prices)
+
+    # start the streaming computation
+    ssc.start()
+    # wait for the streaming to finish
+    ssc.awaitTermination()
 
