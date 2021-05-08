@@ -123,7 +123,7 @@ conn, addr = s.accept()
 print("Connected... Starting getting stocks.")
 
 tickers = read_tickers('all')
-tickers = tickers[0:100]
+tickers = tickers[0:10]
 #tickers = 'AAPL AMD GOOG'
 #start_date = '2021-05-04'
 start_date = str(dt.date.today()) # - dt.timedelta(days=1))

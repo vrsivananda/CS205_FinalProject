@@ -178,11 +178,11 @@ def predict_prices(time_in, rdd):
                 #print(past_data_seq[main_key][0])
                 
                 # change the type of the single ticker sequence into a numpy array
-                new_one_ticker_past_data_seq = np.array(new_one_ticker_past_data_seq)
-                new_one_ticker_past_data_seq =np.reshape(new_one_ticker_past_data_seq, (1,60,2))
+                new_one_ticker_past_data_seq = (np.array(new_one_ticker_past_data_seq) - x_min)/(x_max - x_min)
+                new_one_ticker_past_data_seq = np.reshape(new_one_ticker_past_data_seq, (1,60,2))
                 #print(new_one_ticker_past_data_seq.shape)
 
-                pred_price = model.predict(new_one_ticker_past_data_seq)
+                pred_price = (model.predict(new_one_ticker_past_data_seq))*(y_max - y_min) + y_min
                 
                 #print("----------- %s -----------" % str(time_in))
                 print('The predicted price of '+  key+ ' is '+ str(pred_price[0][0]))
@@ -198,12 +198,36 @@ def predict_prices(time_in, rdd):
     time_taken = time_end - time_start
     print("Time taken to process RDD & Predict Stock is " + str(time_taken) + "s")
 
+def find_min_max(data):
+    """Loads in training and testing data, finds minimum and maximum for transformation back
+    to correct price prediction"""
+    arr = np.load(data)
+    x_train = arr['x_train']
+    y_train = arr['y_train']
+
+    # Subset data to be non-missing
+    xmask = np.max(np.isnan(x_train).astype(int), axis=(1,2)) == 0
+    x_train = x_train[xmask]
+    y_train = y_train[xmask]
+
+    ymask = np.isnan(y_train) == False
+    x_train = x_train[ymask]
+    y_train = y_train[ymask]
+
+    # Standardize data to improve fit
+    x_train_min = x_train.min(axis=0)
+    x_train_max = x_train.max(axis=0)
+    y_train_min = y_train.min()
+    y_train_max = y_train.max()
+
+    return y_train_max, y_train_min, x_train_max, x_train_min
+
 
 
 if __name__ == '__main__':
     tickers = read_tickers('all')
 
-    tickers = tickers[0:100]
+    tickers = tickers[0:10]
     #tickers = ['AAPL', 'AMD', 'GOOG']
     date_today = dt.date.today() # - dt.timedelta(days=1)
     prev_day = date_today - dt.timedelta(days=1)
@@ -211,6 +235,9 @@ if __name__ == '__main__':
 
     # Load in model globally
     model = tf.keras.models.load_model("trained_lstm_mod.h5")
+
+    # Find minimum and maximum for conversion
+    y_max, y_min, x_max, x_min = find_min_max("training_data.npz")
 
     # create spark configuration
     conf = SparkConf()

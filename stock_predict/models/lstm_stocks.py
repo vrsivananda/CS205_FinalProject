@@ -33,8 +33,7 @@ y_train_min = y_train.min()
 y_train_max = y_train.max()
 
 x_train = (x_train - x_train_min)/(x_train_max - x_train_min)
-y_train = (y_train - y_train_min)/(y_train_max + y_train_min)
-
+y_train = (y_train - y_train_min)/(y_train_max - y_train_min)
 
 # Create training, test sets
 train_size = 0.9
@@ -83,7 +82,7 @@ if hvd.rank() == 0:
 
 
 ## ADD MODEL HYPERPARAMETERS
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 VALIDATION_SPLIT = 0.2
 STEPS_PER_EPOCH = len(y_train)*(1-VALIDATION_SPLIT) // (BATCH_SIZE * hvd.size())
 if hvd.rank() == 0:
