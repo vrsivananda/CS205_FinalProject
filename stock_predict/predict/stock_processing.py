@@ -17,13 +17,11 @@ import numpy as np
 import pandas as pd
 
 import tensorflow as tf
-#from tensorflow.keras.layers import Dense, Flatten, Conv2D, LSTM
-#from tensorflow.keras.models import Sequential, Model
-#from tensorflow.keras.optimizers import Adam, SGD
 
-## tensorflow WARNING, and ERROR messages are not printed
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
+
+# this method reads in the ticker codes for the S&P 500 companies
 def read_tickers(which=None):
     """Reads ticker list"""
     if which != "all":
@@ -46,14 +44,15 @@ def read_tickers(which=None):
 
     return tickers
 
+# this method gets the previous day data of the stocks, as we need this to construct the data sequence for the LSTM model prediction
 def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['Close', 'Volume']):
     data_all = yf.download(tickers, interval='1m', start=start_date, progress=False, group_by='ticker')
-    # print(data_all)
     
+    # this is to handle the NaN of the past data
     data_all.dropna(inplace=True)
 
+    # gets the last 60min of the previous day. Additional minutes taken as we are taking several minutes ahead
     last_60min = data_all.iloc[-67:-1,:]
-    # print(last_60min)
     
     # initialize xs as empty dictionary
     xs = {}
@@ -63,7 +62,8 @@ def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['C
             data_sub = last_60min[t]
         else:
             data_sub = last_60min
-        # print(t)
+
+        # generate the past day's data as a data sequence in the same dimensions required by the trained LSTM model
         x_seq = generate_sequences(data_sub, target_min=target_min, seq_len=seq_len, feats=feats)
         
         x_seq = x_seq.tolist()
@@ -78,6 +78,7 @@ def get_prev_day_stocks(tickers, start_date, target_min=5, seq_len=60, feats=['C
     
     return xs
 
+# this method generates the data sequence in the dimensions needed by the LSTM model
 def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']):
     """Given a subset of data for a particular ticker and date, 
     will return sequences of the appropriate length
@@ -103,11 +104,15 @@ def generate_sequences(data, target_min=5, seq_len=60, feats=['Close', 'Volume']
     #print(x.shape)
     return x
 
+
+# this method gets the spark context
 def get_sql_context_instance(spark_context):
     if ('sqlContextSingletonInstance' not in globals()):
         globals()['sqlContextSingletonInstance'] = SQLContext(spark_context)
     return globals()['sqlContextSingletonInstance']
 
+
+# this method predicts the prices of the stocks with each RDD
 def predict_prices(time_in, rdd):
     print("----------- %s -----------" % str(time_in))
 
@@ -118,11 +123,8 @@ def predict_prices(time_in, rdd):
     sql_context = get_sql_context_instance(rdd.context)
     print('Processing RDD and Predicting Stock Price')
 
-    #x = rdd.collect()
-    #print(x)
-    
     x_dict = rdd.collectAsMap()
-    #print(x_dict)
+
     
     # open text file of dict and store as python dict
     file = open("xs_dict.txt", "r")
@@ -130,22 +132,6 @@ def predict_prices(time_in, rdd):
     past_data_seq = eval(contents)
     file.close()
 
-    # Convert output to dictionary then return appropriately
-    # Return (ticker np.array([Close, Volume])
-    #rdd_array = rdd.map(lambda t: (t[0], eval(t[1]))).map(lambda t: (t[0], np.array([float(t[1]['Close']), 
-    #                                                                                float(t[1]['Volume'])])))
-
-    # Add new data to 'current data' = past_data_seq[main_key][0][1:]
-    #rdd_pred_array = rdd_array.map(lambda t: (t[0], t[1], np.concatenate([past_data_seq[t[0]][0][1:], t[1].reshape(1,2)], axis=0)))
-
-    #collected_preds = rdd_pred_array.collect()
-    #for x in collected_preds:
-    #    tick, new_seq, pred_pt = x
-    #    # Add old sequence back to dictionary
-    #    past_data_seq[tick][0] = new_seq
-    #    # Make prediction
-    #    pred = model.predict(pred_pt.reshape(1,60,2))
-    #    print(f'The predicted price of {tick} is $ {pred}')
     
     for key, values in x_dict.items():
         for main_key, main_values in past_data_seq.items():
@@ -154,37 +140,30 @@ def predict_prices(time_in, rdd):
                 
                 # convert the latest minute's update value from string to dict type
                 x_dict_value_toDict = eval(x_dict[key])
-                #print(type(x_dict_value_toDict))
-    #            
+
+                
                 # repack as a list item to append to past_data_seq of the ticker
                 new_dict_value_list = [x_dict_value_toDict['Close'], x_dict_value_toDict['Volume']]
-                #print(new_dict_value_list)
-    
-    
-    #           #print(main_key)
-    #            #print(past_data_seq[main_key][0])
-    #            
+
+               
     #            # drop the oldest element of the ticker's past_data_seq
                 new_one_ticker_past_data_seq = past_data_seq[main_key][0][1:]
-    #            #print(len(new_one_ticker_past_data_seq))
-    #
+   
+    
     #            # append the newest minute update from spark rdd stream into the ticker's past_data_seq
                 new_one_ticker_past_data_seq.append(new_dict_value_list)
-    #            #print(len(new_one_ticker_past_data_seq))
-    #
+ 
+    
                 past_data_seq[main_key][0] = new_one_ticker_past_data_seq
-    #            #print(len(past_data_seq[main_key][0]))
 
-                #print(past_data_seq[main_key][0])
                 
                 # change the type of the single ticker sequence into a numpy array
                 new_one_ticker_past_data_seq = (np.array(new_one_ticker_past_data_seq) - x_min)/(x_max - x_min)
                 new_one_ticker_past_data_seq = np.reshape(new_one_ticker_past_data_seq, (1,60,2))
-                #print(new_one_ticker_past_data_seq.shape)
 
                 pred_price = (model.predict(new_one_ticker_past_data_seq))*(y_max - y_min) + y_min
                 
-                #print("----------- %s -----------" % str(time_in))
+
                 print('The predicted price of '+  key+ ' is '+ str(pred_price[0][0]))
                 
                 
@@ -198,6 +177,8 @@ def predict_prices(time_in, rdd):
     time_taken = time_end - time_start
     print("Time taken to process RDD & Predict Stock is " + str(time_taken) + "s")
 
+
+# this method finds the min and max that was used to normalize the training data. Need this to convert back to correct price prediction
 def find_min_max(data):
     """Loads in training and testing data, finds minimum and maximum for transformation back
     to correct price prediction"""
