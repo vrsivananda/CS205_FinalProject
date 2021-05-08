@@ -28,9 +28,9 @@ After editing the `~/.profile` file, then execute `source ~/.profile`
 
 7. In the AWS Security group, add an inbound rule for All TCP Connections from `0.0.0.0/0`
 
-8. Add `trained_lstm_mod.h5` from either local drive or AWS S3 bucket
+8. Add `trained_lstm_mod.h5` and `training_data.npz` from either local drive or AWS S3 bucket
 
-   1. If using AWS S3 bucket, AWS credentials will need to be configured. This can be accomplished by executing `aws configure`. The subsequent command to transfer the data is: `aws s3 cp s3://cs205-stream-stock-predict/trained_lstm_mod.h5 .`
+   1. If using AWS S3 bucket, AWS credentials will need to be configured. This can be accomplished by executing `aws configure`. The subsequent command to transfer the data is: `aws s3 cp s3://cs205-stream-stock-predict/trained_lstm_mod.h5` and `aws s3 cp s3://cs205-stream-stock-predict/training_data.npz`
 
 9. Open a second terminal & connect via SSH
 
