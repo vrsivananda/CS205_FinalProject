@@ -17,7 +17,6 @@ data = np.load('training_data.npz')
 x_train = data['x_train']
 y_train = data['y_train']
 
-
 # Subset data to be non-missing
 xmask = np.max(np.isnan(x_train).astype(int), axis=(1,2)) == 0
 x_train = x_train[xmask]
@@ -26,6 +25,16 @@ y_train = y_train[xmask]
 ymask = np.isnan(y_train) == False
 x_train = x_train[ymask]
 y_train = y_train[ymask]
+
+# Standardize data to improve fit
+x_train_min = x_train.min(axis=0)
+x_train_max = x_train.max(axis=0)
+y_train_min = y_train.min()
+y_train_max = y_train.max()
+
+x_train = (x_train - x_train_min)/(x_train_max - x_train_min)
+y_train = (y_train - y_train_min)/(y_train_max - y_train_min)
+
 
 # Create training, test sets
 train_size = 0.9
@@ -48,8 +57,8 @@ y_test = tf.convert_to_tensor(y_test)
 mod = tf.keras.Sequential([
     tf.keras.layers.LSTM(50),
     tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.Dense(32),
-    tf.keras.layers.Dense(1)
+    tf.keras.layers.Dense(32, activation='relu'),
+    tf.keras.layers.Dense(1, activation='relu')
 ])
 
 # Horovod: adjust learning rate based on number of GPUs.
@@ -85,6 +94,7 @@ if hvd.rank() == 0:
     print(f'Train size: {int(len(y_train)*(1-VALIDATION_SPLIT))}')
     print(f'Steps per epoch: {int(STEPS_PER_EPOCH)}')
     print(f'Epochs: {int(EPOCHS)}')
+
 h = mod.fit(x=x_train, y=y_train,
             epochs=EPOCHS,
             batch_size=BATCH_SIZE,
@@ -97,4 +107,6 @@ if hvd.rank() == 0:
     mod.evaluate(x=x_test, y=y_test, batch_size=BATCH_SIZE, verbose=1)
     # Save out model for transfer to prediction phase
     mod.save(f'trained_lstm_mod_{hvd.size()}_{BATCH_SIZE}.h5')
+    for key, val in h.history.items():
+        print(f'{key}: {val}')
     print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n\n\n')

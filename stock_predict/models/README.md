@@ -1,8 +1,8 @@
 # Instructions
 
-#### Single GPU/CPU Mode
+#### Single Node Mode
 
-1. Spin up g4dn.xlarge AWS instance, using Ubuntu 18.04. Log in with appropriate AWS credentials.
+1. Spin up g4dn.xlarge AWS instance (or AWS g3s.8xlarge), using Ubuntu 18.04. Log in with appropriate AWS credentials.
 2. Expand the volume to 128GB
    1. This can be done through `Instances > [Select Instance ID] > Storage > [Select only Volume ID] > Actions > Modify Volume > Request 128GB`
 3. SSH into the instance, and transfer `horovod_all.sh`, `lstm_stocks.py`, `keras_mnist.py`. Note that if not using AWS CLI to transfer in training data, that can be done here as well.
@@ -26,7 +26,7 @@ sed -i -e 's/\r$//' horovod_all.sh
 
 ```bash
 export PATH="/home/ubuntu/.local/bin:$PATH"
-horovodrun -np 1 -H localhost:1 python3 lstm_stocks.py
+horovodrun -np 1 -H localhost:1 python3.8 lstm_stocks.py
 ```
 
 10. If training data is not uploaded, follow the instructions below to retrieve from AWS. Note: AWS CLI must be configured.
