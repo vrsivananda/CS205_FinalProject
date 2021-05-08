@@ -8,7 +8,7 @@
 3. SSH into the instance, and transfer `horovod_all.sh`, `lstm_stocks.py`, `keras_mnist.py`. Note that if not using AWS CLI to transfer in training data, that can be done here as well.
 4. Expand volume through the following steps:
    1. `sudo growpart /dev/nvme0n1 1` or `sudo growpart /dev/xvda 1`
-   2. `sudo resize2fs /dev/nvme0n1p1` or `sudo resize2fs /dev/xvda`
+   2. `sudo resize2fs /dev/nvme0n1p1` or `sudo resize2fs /dev/xvda1`
    3. Confirm memory available via `df -h`. Resized part should be $> 128$ GB.
 5. Run the following commands to ensure shell script compatible with Linux:
 
@@ -169,8 +169,8 @@ export PATH="/home/mpiuser/.local/bin:$PATH"
 12. To run, execute the following command in the `cloud` directory. Note that each additional node will be another host, and depends on naming convention, and that the Python script and `training_data.npz` must both be in `cloud`. Two and four nodes are shown as examples.
 
 ```shell
-horovodrun -np 2 -H master:1,node1:1 python3 lstm_stocks.py
-horovodrun -np 2 -H master:1,node1:1,node2:1,node3:1 python3 lstm_stocks.py
+horovodrun -np 2 -H master:1,node1:1 python3.8 lstm_stocks.py
+horovodrun -np 2 -H master:1,node1:1,node2:1,node3:1 python3.8 lstm_stocks.py
 ```
 
 13. If running on many GPUs on the same node, the following commands implements it correctly:
