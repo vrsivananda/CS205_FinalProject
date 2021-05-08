@@ -22,7 +22,9 @@ The Stock Client essentially collects the latest stock data from Yahoo Finance, 
 
 The Stock Processing Streaming Application performs real-time processing of the incoming stock data, and computes the price prediction of each stock of interest within the time interval. More specifically, it splits the datastreams into individual stocks, before extracting the data features of interest (Close Price, Volume), accumulate the latest stock data in the historical data sequence, before predicting the stock price using the data sequence of the stock.
 
-![Prediction_Prog_Mod](/Prediction_Prog_Mod.png)
+<img src="./figures/Prediction_Prog_Mod.png"
+     alt="Markdown Monster icon"
+     style="float: left; margin-right: 10px;" />
 
 All testing and processing was implemented on an AWS `t2.2xlarge` instance, with 8 vCPU and 32 GB of memory. Please see the end of this discussion for extended replicability details.
 
@@ -46,7 +48,13 @@ As seen in the results, the average time taken to predict the price of each stoc
 | 256              | 10.9870             | 0.0429                                |
 | 500              | 21.6437             | 0.0433                                |
 
-## #TODO: ADD PLOT
+<img src="./figures/Pred_time.png"
+     alt="Markdown Monster icon"
+     style="float: left; margin-right: 10px;" />
+
+<img src="./figures/avg_time.png"
+     alt="Markdown Monster icon"
+     style="float: left; margin-right: 10px;" />
 
 #### Lessons & Future Direction
 
