@@ -6,30 +6,21 @@ Created on Wed May  5 13:32:25 2021
 @author: junkaiong
 """
 
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May  4 12:21:42 2021
-@author: junkaiong
-"""
-
 import sys, os, requests, time, math, time
 import datetime as dt
 import yfinance as yf
 import numpy as np
 import pandas as pd
-#import multiprocessing
-#import threading
-#from functools import partial
-#import re
+
 
 import socket
 import sys
 import requests
-#import requests_oauthlib
+
 import json
 
 
+# this method sends the latest stock data to spark
 def send_stock_to_spark(http_resp, tcp_connection):
     for key, values in http_resp.items():
         try:
@@ -45,44 +36,32 @@ def send_stock_to_spark(http_resp, tcp_connection):
             print("Error: %s" % e)
             
             
-# def send_stock_to_spark(http_resp, tcp_connection):
-#     for line in http_resp.iter_lines():
-#         try:
-#             full_stock = json.loads(line)
-#             stock_text = full_stock['text']
-#             print("Stock Text: " + stock_text)
-#             print ("------------------------------------------")
-#             tcp_connection.send(stock_text + '\n')
-#         except:
-#             e = sys.exc_info()[0]
-#             print("Error: %s" % e)
 
+# this method gets the latest stock data from yfinance
 def get_stocks(tickers, start_date):
     x = yf.download(tickers, interval='1m', start=start_date, progress=False, group_by='ticker')
     # drop the nan values from the read off yfinance data
     x.dropna(inplace = True)
-
-    x_columns = x.columns.levels[0].to_list()
-    # print(x_columns)
     
+    # get the columns of ticker names
+    x_columns = x.columns.levels[0].to_list()
+
     ticker_dict = {}
     
     for i in range(len(x_columns)):
+        # defensive programming to check that the data sequence is not empty
         if len(x)>0:
             new_x = x.iloc[-1,:][x_columns[i]][['Close', 'Volume']].to_dict()
-            # print(new_x)
+        
+        # if data sequence is empty, then set the fields to zeros
         else:
             new_x = {'Close': 0, 'Volume':0}
     
         ticker_dict[x_columns[i]] = new_x
     
-    # print(ticker_dict)
-    
-    # still thinking if i should return as json string or as dict 
-    # ticker_json_object = json.dumps(ticker_dict, indent = 4)  
-    
     return ticker_dict
 
+# this method reads in the names of tickers
 def read_tickers(which=None):
     """Reads ticker list"""
     if which != "all":
@@ -105,12 +84,6 @@ def read_tickers(which=None):
 
     return tickers
 
-## this is to test if the dictionary is constructed correctly, without the TCP
-# tickers = read_tickers('all')
-# # tickers = 'AAPL GOOG'
-# # start_date = '2021-05-03'
-# start_date = str(dt.date.today())
-# resp = get_stocks(tickers, start_date)
 
 TCP_IP = "localhost"
 TCP_PORT = 9009
@@ -125,7 +98,7 @@ print("Connected... Starting getting stocks.")
 tickers = read_tickers('all')
 tickers = tickers[0:10]
 #tickers = 'AAPL AMD GOOG'
-#start_date = '2021-05-04'
+
 start_date = str(dt.date.today()) # - dt.timedelta(days=1))
 while True:
     resp = get_stocks(tickers, start_date)
