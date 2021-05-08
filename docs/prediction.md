@@ -22,7 +22,7 @@ The Stock Client essentially collects the latest stock data from Yahoo Finance, 
 
 The Stock Processing Streaming Application performs real-time processing of the incoming stock data, and computes the price prediction of each stock of interest within the time interval. More specifically, it splits the datastreams into individual stocks, before extracting the data features of interest (Close Price, Volume), accumulate the latest stock data in the historical data sequence, before predicting the stock price using the data sequence of the stock.
 
-![Prediction_Prog_Mod](/Users/junkaiong/Desktop/Junkai/Harvard/Spring 21/CS205/FinalProject/fromGitHub/CS205_FinalProject/docs/Prediction_Prog_Mod.png)
+![Prediction_Prog_Mod](/Prediction_Prog_Mod.png)
 
 All testing and processing was implemented on an AWS `t2.2xlarge` instance, with 8 vCPU and 32 GB of memory. Please see the end of this discussion for extended replicability details.
 
