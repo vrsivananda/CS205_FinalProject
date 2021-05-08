@@ -123,11 +123,11 @@ conn, addr = s.accept()
 print("Connected... Starting getting stocks.")
 
 tickers = read_tickers('all')
-tickers = tickers[0:32]
+tickers = tickers[0:100]
 #tickers = 'AAPL AMD GOOG'
 #start_date = '2021-05-04'
 start_date = str(dt.date.today()) # - dt.timedelta(days=1))
 while True:
     resp = get_stocks(tickers, start_date)
     send_stock_to_spark(resp, conn)
-    time.sleep(60)
+    time.sleep(20)#60)
