@@ -5,6 +5,9 @@ Created on Tue May  4 15:56:56 2021
 
 @author: junkaiong
 """
+## referenced Harvard CS205 Course Material Lecture C3
+## https://harvard-iacs.github.io/2021-CS205/lectures/C3/
+
 
 from pyspark import SparkConf,SparkContext
 from pyspark.streaming import StreamingContext
