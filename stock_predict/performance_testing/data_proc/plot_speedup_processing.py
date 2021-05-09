@@ -24,20 +24,18 @@ def plot_speedup_singlethread():
     sequential_times, parallel_times = get_times('initial_performance_testing.txt')
     fig, axs = plt.subplots(1, 1, figsize=(6,4))
     speedup_init = [float(sequential_times[0])/float(p) for p in parallel_times[0]]
-    speedup_par_thread = [float(sequential_times[0])/float(sequential_times[1]) for p in parallel_times[0]]
-    speedup_par_all = [float(sequential_times[0])/float(p) for p in parallel_times[1]]
-    speedup_par_threadbase = [float(sequential_times[1])/float(p) for p in parallel_times[1]]
 
     # Note: Just plot multicore vs multithread + multicore
     cores = [1,2,4,8]
-    axs.plot(cores, speedup_init, label=f'Single threading')
+    axs.plot(cores, speedup_init, label=f'Actual speedup')
+    plt.plot(cores, cores, ls='--', c='k', label=f'Predicted Speedup')
     axs.set_xlabel('Number of processes')
     axs.set_ylabel('Speedup')
     axs.legend()
     plt.suptitle(f'Speedup for multiple processes, single thread per process (50 tickers)')
     plt.legend()
     
-    plt.savefig('./speedup_multithreading.png')
+    plt.savefig('./speedup_singlethread.png')
     plt.show()
 
 
@@ -56,11 +54,12 @@ def plot_relative_multithread_gain():
     # Calculate efficiency
     cores = [1,2,4,8]
     rel_speedup = [float(x)/float(y) for x, y in zip(parallel_times[0], parallel_times[1])]
-    plt.plot(cores, rel_speedup, label=f'Speedup')
+    plt.plot(cores, rel_speedup, label=f'Actual Speedup')
+    plt.plot(cores, 16, ls='--', c='k', label=f'Theoretical Speedup')
     plt.xlabel('# of Processes')
     plt.ylabel('Relative Speedup')
     plt.title('Relative speedup of multithreaded approach, by number of processes (50 tickers)')
-    plt.ylim(0, 8)
+    plt.ylim(0, 20)
 
     plt.show()
 
