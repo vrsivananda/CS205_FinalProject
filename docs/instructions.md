@@ -5,7 +5,7 @@
 To download the code and the corresponding setup instructions to your local machine, please perform the following:
 
 ```
-https://github.com/vrsivananda/CS205_FinalProject
+git clone https://github.com/vrsivananda/CS205_FinalProject
 ```
 
 ### Software Setup Instructions
