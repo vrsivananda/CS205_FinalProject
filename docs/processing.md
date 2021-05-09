@@ -47,11 +47,11 @@ To mitigate these overheads, we implemented the following strategies:
 
 1. *Multiple threading*: The `yfinance` download functionality supports downloads of many Tickers at once through `threading`, which implements many threads at once. This is particularly helpful for I/O bound tasks. Because we are pulling significant data, these tasks are inherently I/O bound. While we could theoretically re-create this behavior, the built-in functionality performs well, as demonstrated in the table below, which is a direct comparison to Table 1. See the end of this instructions for the appropriate files and commands to replicate.
 
-| Number of Tickers | Download - Total | Download - Per Call | Sleep - Total | Sleep - Per Call |
-| ----------------- | ---------------- | ------------------- | ------------- | ---------------- |
-| 1                 |                  |                     |               |                  |
-| 5                 |                  |                     |               |                  |
-| 10                | 14.481           | 0.499               | 12.145        | 0.012            |
+| Number of Tickers | Total Time | Download - Total | Download - Per Call | Sleep - Total | Sleep - Per Call |
+| ----------------- | ---------- | ---------------- | ------------------- | ------------- | ---------------- |
+| 1                 | 2.596      | 3.050            | 0.058               | 2.996         | 0.011            |
+| 5                 | 11.826     | 10.889           | 0.375               | 9.770         | 0.011            |
+| 10                | 15.408     | 14.481           | 0.499               | 12.145        | 0.012            |
 
 
 
@@ -59,9 +59,15 @@ To mitigate these overheads, we implemented the following strategies:
 
 #### Performance evaluation
 
-To evaluate the performance and speedup of these parallel implementations, we conducted two tests. First, we compare all four implementations: fully sequential, using multi-core processing only, multiple threading only, and multiple-core processing with each core utilizing many threads. This test was conducted with 50 stock tickers as a proof of concept. The speedup relative to the naive baseline is substantial. As can be seen below, with eight processors, we achieve a speedup of nearly 25x over the baseline. As the plot shows, we achieve approximately 6x speedup with only the application of multi-core processing. Given that our processing task must achieve data input and output, inherently sequential tasks, this speedup is consistent with Ahmdal's law of strong scaling. In a purely parallel program, we would expect 8x speedup, and thus the reduction can be attributed to the I/O constraints. Moreover, the incredible speedup achieved by implementation of a multithreaded download further emphasizes the I/O bound nature of our task. Even using only a single core achieves a speedup of nearly 5x.
+To evaluate the performance and speedup of these parallel implementations, we conducted three tests, which test the parallelism and performance gains from both multithreading and multiprocessing. The first test compares the relative speedup to the fully naive baseline. As shown above, this is an inefficient process due to the number of non-parallelized API calls whereas a more parallel approach would use multithreading. Multithreading is implemented as a very fine-grained level of parallelism. Specifically, this is tuned to address I/O issues. The process of retrieving the data for separate tickers can be parallelized, even if ultimately writing that to memory cannot be (i.e. thread-level parallelism). The figure below shows the speedup gained from using many processors, but no multithreading.
 
-## #TODO: ADD PLOT
+![multiprocessing_nothreading](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/figures/speedup_singlethread.png)
+
+
+
+First, we compare all four implementations: fully sequential, using multi-core processing only, multiple threading only, and multiple-core processing with each core utilizing many threads. This test was conducted with 50 stock tickers as a proof of concept. The speedup relative to the naive baseline is substantial. As can be seen below, with eight processors, we achieve a speedup of nearly 25x over the baseline. As the plot shows, we achieve approximately 6x speedup with only the application of multi-core processing. Given that our processing task must achieve data input and output, inherently sequential tasks, this speedup is consistent with Ahmdal's law of strong scaling. In a purely parallel program, we would expect 8x speedup, and thus the reduction can be attributed to the I/O constraints. Moreover, the incredible speedup achieved by implementation of a multithreaded download further emphasizes the I/O bound nature of our task. Even using only a single core achieves a speedup of nearly 5x.
+
+## 
 
 Given the substantial speedup and built-in implementation of the multiple-threading download, we have demonstrated a larger scale test between the multiple-thread single core and multiple-thread, multiple core, using all 500 stock tickers, representing a more realistic view of our data processing task. The plot below shows a speedup of approximately 6.85x for the 8 core processing task. The scaling here closely follows Ahmdal's law, which is intuitive given that it is almost embarrassingly parallel. The small reduction in time is likely due to the I/O restrictions of creating the dataset. After processing, the sequences are concatenated into a single dataset to be fed to the model. For data-intensive tasks, this is almost always an issue and prevents full parallelization of the task. There are two further points to highlight. First, the multi-process mode with only a single process is slower (speedup of 0.96x) compared to the sequential version. This slight penalty shows the computational cost associated with orchestration of the `multiprocessing` library and likely the `fork` `join` model of waiting for the process to complete. Finally, the non-parallel version of this process takes approximately 36 minutes compared to slightly more than 5 minutes for the parallel version. Indeed, estimating this performance over the fully sequential version suggests the code would take approximately 2.5 hours! Thus, our solution here dramatically reduces the time needed to pull this data.
 
