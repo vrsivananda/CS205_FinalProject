@@ -47,7 +47,7 @@ plt.legend()
 plt.savefig('multi_gpu_speedup.png')
 
 
-# Plot 3: Batch size
+# Plot 3: Batch size (single node)
 
 with open('single_node.txt') as json_file:
     single_node = json.load(json_file)
@@ -66,11 +66,12 @@ fig, ax1 = plt.subplots()
 color = 'tab:red'
 
 ax1.plot(batch_sizes, time_per_step, label='', color=color)
-ax1.set_title('')
 ax1.set_ylabel('Time per step (ms)', color=color)
 ax1.tick_params(axis='y', labelcolor=color)
 ax1.set_xticks(batch_sizes)
 ax1.set_xlabel('Effective Batch Size')
+
+ax1.set_title('Single Node')
 
 ax2 = ax1.twinx()
 color = 'tab:blue'
@@ -79,4 +80,77 @@ ax2.set_ylabel('Time per epoch (s)', color=color)
 ax2.tick_params(axis='y', labelcolor=color)
 
 fig.tight_layout()
-fig.savefig('time_vs_batchsize.png')
+fig.savefig('time_vs_batchsize_single_node.png')
+
+
+# Plot 4: Batch size (multi node)
+
+with open('multi_node.txt') as json_file:
+    multi_node = json.load(json_file)
+
+steps_per_epoch = [24226, 12113, 6056, 3028]
+batch_sizes = [32, 64, 96, 128]
+mean_time_per_epoch = []
+
+for k, bs_dict in multi_node.items():
+    mean_time_per_epoch.append(np.mean(bs_dict['time_per_epoch'])*1000)
+    
+time_per_step = np.array(mean_time_per_epoch)/np.array(steps_per_epoch)
+
+
+fig, ax1 = plt.subplots()
+color = 'tab:red'
+
+ax1.plot(batch_sizes, time_per_step, label='', color=color)
+ax1.set_ylabel('Time per step (ms)', color=color)
+ax1.tick_params(axis='y', labelcolor=color)
+ax1.set_xticks(batch_sizes)
+ax1.set_xlabel('Effective Batch Size')
+
+ax1.set_title('Multi Node')
+
+ax2 = ax1.twinx()
+color = 'tab:blue'
+ax2.plot(batch_sizes, np.array(mean_time_per_epoch)/1000, label='')
+ax2.set_ylabel('Time per epoch (s)', color=color)
+ax2.tick_params(axis='y', labelcolor=color)
+
+fig.tight_layout()
+fig.savefig('time_vs_batchsize_multi_node.png')
+
+
+# Plot 5: Batch size (multi GPU)
+
+with open('multi_gpu.txt') as json_file:
+    multi_gpu = json.load(json_file)
+
+steps_per_epoch = [24226, 12113, 6056, 3028]
+batch_sizes = [32, 64, 96, 128]
+mean_time_per_epoch = []
+
+for k, bs_dict in multi_gpu.items():
+    mean_time_per_epoch.append(np.mean(bs_dict['time_per_epoch'])*1000)
+    
+time_per_step = np.array(mean_time_per_epoch)/np.array(steps_per_epoch)
+
+
+fig, ax1 = plt.subplots()
+color = 'tab:red'
+
+ax1.plot(batch_sizes, time_per_step, label='', color=color)
+ax1.set_title('')
+ax1.set_ylabel('Time per step (ms)', color=color)
+ax1.tick_params(axis='y', labelcolor=color)
+ax1.set_xticks(batch_sizes)
+ax1.set_xlabel('Effective Batch Size')
+
+ax1.set_title('Multi GPU')
+
+ax2 = ax1.twinx()
+color = 'tab:blue'
+ax2.plot(batch_sizes, np.array(mean_time_per_epoch)/1000, label='')
+ax2.set_ylabel('Time per epoch (s)', color=color)
+ax2.tick_params(axis='y', labelcolor=color)
+
+fig.tight_layout()
+fig.savefig('time_vs_batchsize_multi_gpu.png')
