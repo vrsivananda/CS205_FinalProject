@@ -4,6 +4,10 @@
 
 To download the code and the corresponding setup instructions to your local machine, please perform the following:
 
+```
+https://github.com/vrsivananda/CS205_FinalProject
+```
+
 ### Software Setup Instructions
 
 Our pipeline is broken down into the three phases as outlined below. All testing done for these phases is described below, though could, in principle be combined into a single phase. However, each of these steps can be discretized. This is an important aspect when considering cost and the computational resources necessary to sustain our models, as users may wish to divide the resources necessary, either for time purposes or in order to reduce the financial constraints of scraping the data and running the models together.
