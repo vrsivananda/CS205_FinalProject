@@ -23,4 +23,5 @@ A project table of contents can be found below. Additionally, all software for t
 6. [Discussion](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/discussion.md)
 7. Reproducibility Info
 8. [Software Instructions](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/instructions.md)
-9. [Project Presentations](https://github.com/vrsivananda/CS205_FinalProject/blob/master/presentations/)
+9. [Sources](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/aggregated_sources.md)
+10. [Project Presentations](https://github.com/vrsivananda/CS205_FinalProject/blob/master/presentations/)
