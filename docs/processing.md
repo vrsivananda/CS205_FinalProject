@@ -4,6 +4,10 @@
 
 The data processing for this problem represents a case of high-throughput computing. The major challenge of this section is communication with the `yfinance` API. Because this API provides data in regimented ways, the processing described below is specifically suited to its design. In general, this is a feature of data processing when working with external sources, but provides a platform to creatively speed up the process. Additionally, one note about `yfinance` is that only 30 days of minute-by-minute data are stored. Moving beyond the proof-of-concept of this project, we envision the most efficient scraping tool for this project to collect approximately once a day, for only one days worth of data. In that case, though, the speedup here may be less relevant. Additionally, `yfinance` has most tickers available on Yahoo Finance, but is inherently limited. We have selected the stocks of the S&P500 as our baseline, though this could surely be expanded, and we would expect similar speedup.
 
+#### Data Sources
+
+In this project, we primarily rely on data from `yfinance`, a Python library which interacts with Yahoo Finance-provided market information at many resolutions. Specifically, our training data consists of the the Close Price and Trade Volume on a minute-by-minute basis, for 503 of the 505 stocks in the S&P 500, which includes most major US-based corporations. The financial data covers the trading days occurring between Monday, April 4, 2021 and Friday, April 30, 2021. One important clarification is that `yfinance` makes only 30 days of data available (this corresponds to fewer trading days). 
+
 #### Programming Model & Parallelism
 
 Much of the data processing centers around the `yfinance` API (see [here](https://pypi.org/project/yfinance/)). This is an API written in Python to access stock price and volume information down to the minute level. Because this application is written in Python, the scraper to communicate with the API must be in Python (or through Python bindings in another language). Given the global interpreter lock (GIL) and Python's limits on multicore and multithread computation, this was necessary a tricky place to implement parallelism. However, due to the problem's high-throughput and nearly embarrassingly parallel structure, we were able to make use of modules such as `multiprocessing` and `multitasking`, though the latter is implicitly built into the `yfinance` API call. Thus, we effectively discretized our stocks of interest into separate batches. Each batch was spawned into its own process, using multithreading to access the information from many stocks at once. From there, the data are effectively split into stock-day components, and sequences are generated and concatenated together to form the training dataset. All testing and processing was implemented on an AWS `t2.2xlarge` instance, with 8 vCPU and 32 GB of memory. Please see the end of this discussion for extended replicability details.
@@ -19,7 +23,7 @@ Note that this problem is nearly embarrassingly parallel: because we do not over
 ```py
 for t in tickers:
 	for d in days:
-		for n in sequence_length:
+		for n in sequences_per_day:
 			seq = generate_sequence(t, d, n)
 ```
 
