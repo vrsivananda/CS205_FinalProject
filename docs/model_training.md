@@ -99,7 +99,7 @@ Source: [Garcia, "Visual Intuition on Ring-AllReduce for Distributed Deep Learni
 
 ### Performance Evaluation
 
-To evaluate the performance of the Ring Reduce algorithm, we test model training under two scenarios. First, on a single node with two GPUs. One of the biggest strengths of Horovod is its flexibility, as the API follows similarly along with OpenMPI. Thus, our second set of tests show the scalability of this approach across one to four nodes, each with a single GPU.
+To evaluate the performance of the Ring-AllReduce algorithm, we test model training under two scenarios. First, on a single node with two GPUs. One of the biggest strengths of Horovod is its flexibility, as the API follows similarly along with OpenMPI. Thus, our second set of tests show the scalability of this approach across one to four nodes, each with a single GPU.
 
 Two important logistical note regarding the below performance evaluations: First, due to cloud-provider constraints on total vCPUs, we were unable to test on multiple, multi-node GPUs at this time, though as our instructions indicate, scaling from one GPU on each of two nodes to two GPUs on each of two nodes is simply a change of three integers in a single command line execution. Second, because of these constraints, the the exact hardware varies slightly between scenario. We primarily focus on speedup results as we have benchmarked the single-GPU time for each machine as the baseline, but this limits the direct quantitative comparison of communication overheads.
 
@@ -152,9 +152,9 @@ Our key findings are that scaling efficiency diminishes fairly quickly for a rel
 
 ### Reproducibility Instructions
 
-To reproduce our results, follow the instructions in the [models directory](https://github.com/vrsivananda/CS205_FinalProject/tree/sr_models/stock_predict/models)
+To reproduce our results, follow the instructions in the [models directory](https://github.com/vrsivananda/CS205_FinalProject/tree/sr_models/stock_predict/models).
 
-Reproducibility information about the instances are at the end of this README file.
+Replicabiity information about the instances are at the end of this README file.
 
 ### Sources
 
@@ -228,6 +228,11 @@ All testing was conducted on AWS. Specification details are below:
 | GPU Mem. (Per Unit)  | 8GB                                       |
 | GPU Cores (Per Unit) | 2048                                      |
 | GPU Peak performance | 150GFLOPs (64 bit); 4.825TFLOPs (32 bit)  |
+
+| Cluster Spec.        | Details        |
+| -------------------- | -------------- |
+| Latency              | 0.138ms        |
+| Bandwidth            | 9.68 Gbits/sec |
 
 | Software Spec.   | Details      |
 | ---------------- | ------------ |
