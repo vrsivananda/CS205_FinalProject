@@ -7,14 +7,7 @@ import multiprocessing
 import threading
 from functools import partial
 import re
-#from pyspark import SparkConf, SparkContext
-#from pyspark.sql import SQLContext, SparkSession
-#from pyspark.sql.functions import split as ps_split
-#from pyspark.sql.functions import when
-#from pyspark.sql.functions import collect_list
 
-# Author: Kevin Hare
-# Last Updated: 5/1/2021
 # Purpose: Save yfinance data and convert to sequence
 
 def find_last_date(interval='1m'):
