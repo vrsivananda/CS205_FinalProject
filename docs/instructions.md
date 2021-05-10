@@ -28,6 +28,6 @@ Our pipeline is broken down into the three phases as outlined below. All testing
 
 3. **Prediction**: Once the model has been trained, the next logical step is to serve predictions. We do so in a streamed manner. That is, each minute, we take new prices and volume for some number of stocks and serve predictions of the 5-minute ahead price, each minute.
 
-   1. A more detailed description of the design and implementation of the model training phase can be found **[here](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/prediction.md)**
-   2. The setup instructions for the model training phase can be found **[here](https://github.com/vrsivananda/CS205_FinalProject/blob/master/stock_predict/predict/README.md)**
+   1. A more detailed description of the design and implementation of the prediction phase can be found **[here](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/prediction.md)**
+   2. The setup instructions for the prediction phase can be found **[here](https://github.com/vrsivananda/CS205_FinalProject/blob/master/stock_predict/predict/README.md)**
 
