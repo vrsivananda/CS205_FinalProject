@@ -62,6 +62,7 @@ As seen in the results, the average time taken to predict the price of each stoc
    1. This means that we would be able to bring real-time stock prediction close to the end-user with COTS machines to increase the access to our system.
    2. Depending on the time-budget requirement of the end-user, we can scale the problem size (number of stocks to predict) to meet the time budget requirement.
 2. The latest data pulled from `yfinance` may contain NaN values, and would require additional processing to handle these NaN values, which would otherwise cause problem to the prediction using the LSTM model. 
+3. Hence, some potential future research could include the exploration in increasing the resolution of prediction from 5 minutes ahead to 2 minutes ahead, since the time taken to predict the full set of S&P500 companies was about 20s. We can also explore the use of smaller machines for prediction, as this can help increase the access of our application to a larger number of end users, while reducing the overall operating cost. We also see a great potential in the use of Elephas for the prediction phase, as it may allow us to perform model predictions more efficiently.
 
 #### Technical details
 
