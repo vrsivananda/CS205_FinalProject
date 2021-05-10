@@ -126,7 +126,25 @@ From the above, we note that even when scaling the batch size substantially, the
 
 #### Multiple Nodes, Single GPU per Node
 
-![Multi Node Speedup](../stock_predict/performance_testing/training/speedup_multi_gpu.png)
+![Multi Node Speedup](../stock_predict/performance_testing/training/speedup_multi_node.png)
+
+We get modest speedup from increasing the number of nodes in the cluster. At 4 nodes, the speedup achieved is 2.05.
+
+#### Changing Effective Batch Sizes
+
+Since each GPU/node runs its forward pass and calculates the gradients before averaging across batches, the effective batch size is the number of GPUs/nodes multiplied by the batch size for each GPU/node.
+
+![Test Loss for Multi Node and Multi GPU](../stock_predict/performance_testing/training/test_loss_multi_node_multi_gpu.png)
+
+We note that changing the effective batch sizes does not change the test loss for a given number of training epochs. As such we experimented with different batch sizes to minimize time spent in training.
+
+![Multi GPU Effective Batch Size](../stock_predict/performance_testing/training/time_vs_batchsize_multi_gpu.png)
+
+In the Multi GPU configuration, we trained the algorithm on 1 instance with 2 GPUs. Here we increased the effective batch size by increasing the batch size for each GPU. We see that the training time for each step increases marginally, while the training time per epoch decreases substantially as there is less communication overheads involved.
+
+![Multi Node Effective Batch Size](../stock_predict/performance_testing/training/time_vs_batchsize_multi_node.png)
+
+In the Multi Node configuration, we trained the algorithm on instances with 1 GPU, and increased the number of instances while keeping the batch size for each instance constant at 32. Here the effect of increasing the effective batch size (by increasing the number of nodes) is diminished, probably because of the additional communication complexity when adding each additional node.
 
 #### Comparison & Analysis
 
