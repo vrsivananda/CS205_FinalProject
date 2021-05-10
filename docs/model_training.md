@@ -194,6 +194,11 @@ All testing was conducted on AWS. Specification details are below:
 | GPU Cores (Per Unit) | 2048                                      |
 | GPU Peak performance | 150GFLOPs (64 bit); 4.825TFLOPs (32 bit)  |
 
+| Cluster Spec.        | Details        |
+| -------------------- | -------------- |
+| Latency              | 0.138ms        |
+| Bandwidth            | 9.68 Gbits/sec |
+
 | Software Spec.   | Details      |
 | ---------------- | ------------ |
 | Operating System | Ubuntu 18.04 |
