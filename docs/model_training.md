@@ -57,9 +57,22 @@ While some authors seek to develop novel CUDA routines (see e.g. Martin and Cund
 
 One of the most evident examples of the potential for this speedup is ImageNet, a Deep Convolutional Neural Network. Trained on millions of images, the original model required 29 hours to train on an 8 GPU node. However, utilizing a multi-node approach, Goyal et al. (2018) were able to achieve comparable accuracy to the original training by dividing the work amongst 32 nodes, each with 8 GPUs for a total of 256 worker nodes. This 29x speedup without a loss of accuracy demonstrates the promise of a multi-node approach and its scalability. We employ similar, albeit significantly smaller scale, testing of our models performance across multiple nodes. We would like to highlight, however, that our method is scalable and with sufficient financial resources and hardware tuning, could be scaled to 256 GPU nodes. Aside from the relevant financial constraints (our estimates suggest that 256 GPUs is roughly $1000 per hour on AWS), scaling performance may be next limited by developer overhead of orchestrating and tuning the MPI nodes!
 
-This is orchestrated through the [Horovod platform](https://horovod.readthedocs.io/en/stable/summary_include.html). This platform, produced by Uber, provides wrapper functionality to parallelize the training of deep learning models, running in a scalable fashion on many GPUs and multiple nodes using [NCCL](https://developer.nvidia.com/nccl) to communicate between Nvidia GPUs and [OpenMPI](https://www.open-mpi.org/) to communicate between nodes. Generally, Horovod works by dividing the training data in each training epoch amongst the worker nodes. On each GPU worker node, the gradient updates proceed according to the batch size specification. However, after each batch, the GPU communicates this information to some other other nodes, using the Ring Reduce algorithm.
+This is orchestrated through the [Horovod platform](https://horovod.readthedocs.io/en/stable/summary_include.html). This platform, produced by Uber, provides wrapper functionality to parallelize the training of deep learning models, running in a scalable fashion on many GPUs and multiple nodes using [NCCL](https://developer.nvidia.com/nccl) to communicate between Nvidia GPUs and [OpenMPI](https://www.open-mpi.org/) to communicate between nodes. Generally, Horovod works by dividing the training data in each training epoch amongst the worker nodes. On each GPU worker node, the gradient updates proceed according to the batch size specification. However, after each batch, the GPU communicates this information to some other other nodes, using the Ring-AllReduce algorithm.
 
-**SIVA**
+The Ring-AllReduce algorithm coordinates the updating of weights across the copies of the model in different nodes while also making most efficient use of available bandwidth.  This algorithm is implemented in two steps: The share-reduce phase, and the share phase.
+
+![Ring-AllReduce Diagram](http://1fykyq3mdn5r21tpna3wkdyi-wpengine.netdna-ssl.com/wp-content/uploads/2017/10/image4-2.png)
+Image source: [Uber, "Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow"](https://eng.uber.com/horovod/)
+
+The share-reduce phase begins after each worker has calculated their respective gradients. The gradients (of size N) are then split up into chunks corresponding to the number of worker nodes (denoted by P). Thus each chunk has size (N/P). Each worker then passes one chunk of data to the next worker in a ring formation. The receiving worker then begins performing the reduction operation (by summing the weights). This occurs p-1 times, until all the chunks have been fully reduced and each worker holds a single fully reduced chunk.
+
+The share phase then begins, where each worker passes their fully reduced chunk around the ring. The receiving workers update their own weights with the fully reduced weights and then passes it on to the next worker. This too occurs p-1 times such that each fully reduced chunk makes its way around the ring. At the end of the share phase, each worker has fully updated their weights and the next batch of data is ready to be passed through the network.
+
+Compared to the parameter server model which sends 2N(P-1) amount of data through the network for each gradient update, the Ring-AllReduce algorithm only sends 2(N/P)(P-1) amount of data. This means that the Ring-AllReduce algorithm scales much better with increasing number of worker nodes (P).
+
+Source: [Garcia, "Visual Intuition on Ring-AllReduce for Distributed Deep Learning"](https://towardsdatascience.com/visual-intuition-on-ring-allreduce-for-distributed-deep-learning-d1f34b4911da)
+
+
 
 #### Model Details
 
@@ -82,7 +95,7 @@ This is orchestrated through the [Horovod platform](https://horovod.readthedocs.
     - Test: 107,673 sequences
   - All sequences with missing price or volume information are dropped for the purposes of our experiments and prediction. While imputation could be a fruitful future direction, it is beyond the scope of this project.
 - Optimizer: Adam, base learning rate equal to $0.0001$. As described above, this is linearly scaled in the number of workers (i.e GPUs) used.
-- Batch Size: Baseline size of 32, though scaled in the experiments described below. 
+- Batch Size: Baseline size of 32, though scaled in the experiments described below.
 
 ### Performance Evaluation
 
@@ -111,7 +124,7 @@ In both cases, we run two tests. The first shows the strong scaling of each appr
 | 1    | 256                | 256                  | 6.14E-05 |
 | 2    | 256                | 512                  | 9.06E-05 |
 
-From the above, we note that even when scaling the batch size substantially, the accuracy remains quite high. These results are in line with Lanbouri and Achchab (2020). While none of our specifications achieve quite as accurate results, our model is trained on a stock-by-stock basis, and is thus in-sample for any individual stock, potentially more important than a market aggregate. From a scientific perspective, this validates the approach of utilizing multiple GPUs, which can substantially accelerate training. 
+From the above, we note that even when scaling the batch size substantially, the accuracy remains quite high. These results are in line with Lanbouri and Achchab (2020). While none of our specifications achieve quite as accurate results, our model is trained on a stock-by-stock basis, and is thus in-sample for any individual stock, potentially more important than a market aggregate. From a scientific perspective, this validates the approach of utilizing multiple GPUs, which can substantially accelerate training.
 
 #### Multiple Nodes, Single GPU per Node
 
@@ -137,4 +150,3 @@ From the above, we note that even when scaling the batch size substantially, the
   Term Memory." *International Workshop on Artificial Intelligence & Internet of Things (A2IoT)*, Leuven, Belgium. August 2020.
 - Martin, Eric and Chris Cundy. 2017. "Parallelizing Linear Recurrent Neural Nets Over Sequence Length." *ICLR*, Vancouver, BC, April 2018.
 - Sainath, Tara and Bo Li. 2016. "Modeling Time-Frequency Patterns with LSTM vs. Convolutional Architectures for LVCSR Tasks." *Interspeech 2016*, 813-817.
-
