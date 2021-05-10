@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed May  5 13:32:25 2021
-
-@author: junkaiong
-"""
 ## referenced Harvard CS205 Course Material Lecture C3
 ## https://harvard-iacs.github.io/2021-CS205/lectures/C3/ 
 
