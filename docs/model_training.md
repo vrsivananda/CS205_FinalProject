@@ -148,3 +148,42 @@ From the above, we note that even when scaling the batch size substantially, the
   Term Memory." *International Workshop on Artificial Intelligence & Internet of Things (A2IoT)*, Leuven, Belgium. August 2020.
 - Martin, Eric and Chris Cundy. 2017. "Parallelizing Linear Recurrent Neural Nets Over Sequence Length." *ICLR*, Vancouver, BC, April 2018.
 - Sainath, Tara and Bo Li. 2016. "Modeling Time-Frequency Patterns with LSTM vs. Convolutional Architectures for LVCSR Tasks." *Interspeech 2016*, 813-817.
+
+## Replicability Information
+
+All testing was conducted on AWS. Specification details are below:
+
+### 2- GPU Instance
+
+- Instance: `g3.8xlarge`
+
+| Hardware Spec.       | Details                                   |
+| -------------------- | ----------------------------------------- |
+| Model                | Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz |
+| # of vCPU            | 32                                        |
+| Cores per CPU        | 16                                        |
+| L1 Cache             | 64KB                                      |
+| L2 Cache             | 256KB                                     |
+| L3 Cache             | 30MB                                      |
+| Main Memory          | 46GB                                      |
+| \# of GPU            | 2                                         |
+| GPU Type             | Nvidia Tesla M60                          |
+| GPU Mem. (Per Unit)  | 8GB                                       |
+| GPU Cores (Per Unit) | 2048                                      |
+| GPU Peak performance | 150GFLOPs (64 bit); 4.825TFLOPs (32 bit)  |
+
+| Software Spec.   | Details      |
+| ---------------- | ------------ |
+| Operating System | Ubuntu 18.04 |
+| Compiler         | GCC 7.5.0    |
+| Python           | 3.8.10       |
+| CUDA             | 11.0.228     |
+| CuDNN            | 8            |
+
+| Python Package                                  | Version |
+| ----------------------------------------------- | ------- |
+| `NumPy`                                         | 1.19.5  |
+| `tensorflow`                                    | 2.4.1   |
+| `keras`                                         | 2.4.3   |
+| `horovod`                                       | 0.21.3  |
+| Other libraries part of Python Standard Library | 3.8.10  |
