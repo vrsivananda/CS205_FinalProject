@@ -126,7 +126,7 @@ From the above, we note that even when scaling the batch size substantially, the
 
 #### Multiple Nodes, Single GPU per Node
 
-\#TODO
+![Multi Node Speedup](../stock_predict/performance_testing/training/speedup_multi_gpu.png)
 
 #### Comparison & Analysis
 
