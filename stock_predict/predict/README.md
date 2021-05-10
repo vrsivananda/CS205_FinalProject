@@ -40,7 +40,7 @@ After editing the `~/.profile` file, then execute `source ~/.profile`
 spark-submit stock_processing.py
 ```
 
-9. In the second terminal, execute:
+11. In the second terminal, execute:
 
 ```bash
 python3 stock_client.py
