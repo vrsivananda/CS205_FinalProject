@@ -9,5 +9,8 @@ This directory contains the performance testing results for the training phase.
 
 #### Data files:
 1. `single_node.txt`: This file contains the data from a single g3s.xlarge AWS instance, scaled across different batch sizes.
-2. `multi_node.txt`: This file contains the data from 1-4 g3s.xlarge AWS instances that form a cluster
+2. `multi_node.txt`: This file contains the data from 1-4 g3s.xlarge AWS instances that form a cluster.
 3. `multi_gpu.txt`: This file contains the data from a single g3.8xlarge AWS instance, which has 2 GPUs.
+
+#### Directories:
+1. `additional_expts`: This directory contains additional analyses we did but were not used in our explanations.
