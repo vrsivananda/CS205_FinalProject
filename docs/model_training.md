@@ -126,13 +126,35 @@ From the above, we note that even when scaling the batch size substantially, the
 
 #### Multiple Nodes, Single GPU per Node
 
-\#TODO
+![Multi Node Speedup](../stock_predict/performance_testing/training/speedup_multi_node.png)
+
+We get modest speedup from increasing the number of nodes in the cluster. At 4 nodes, the speedup achieved is 2.05.
+
+#### Changing Effective Batch Sizes
+
+Since each GPU/node runs its forward pass and calculates the gradients before averaging across batches, the effective batch size is the number of GPUs/nodes multiplied by the batch size for each GPU/node.
+
+![Test Loss for Multi Node and Multi GPU](../stock_predict/performance_testing/training/test_loss_multi_node_multi_gpu.png)
+
+We note that changing the effective batch sizes does not change the test loss for a given number of training epochs. As such we experimented with different batch sizes to minimize time spent in training.
+
+![Multi GPU Effective Batch Size](../stock_predict/performance_testing/training/time_vs_batchsize_multi_gpu.png)
+
+In the Multi GPU configuration, we trained the algorithm on 1 instance with 2 GPUs. Here we increased the effective batch size by increasing the batch size for each GPU. We see that the training time for each step increases marginally, while the training time per epoch decreases substantially as there is less communication overheads involved.
+
+![Multi Node Effective Batch Size](../stock_predict/performance_testing/training/time_vs_batchsize_multi_node.png)
+
+In the Multi Node configuration, we trained the algorithm on instances with 1 GPU, and increased the number of instances while keeping the batch size for each instance constant at 32. Here the effect of increasing the effective batch size (by increasing the number of nodes) is diminished, probably because of the additional communication complexity when adding each additional node.
 
 #### Comparison & Analysis
 
-\#TODO
+Our key findings are that scaling efficiency diminishes fairly quickly for a relatively small LSTM model and amount of data. We also find that using larger batch sizes increases speedup without loss of accuracy for a fixed number of epochs. We think that we can take advantage of accelerated computing more by increasing the feature vectors and size of the hidden units in the LSTM. This will better take advantage of the matrix multiplication capabilities of the GPU and not increase communication overheads. To compensate for the increased processing time, we could decrease sequence length of the data while maintaining test accuracy.
 
 ### Reproducibility Instructions
+
+To reproduce our results, follow the instructions in the [models directory](https://github.com/vrsivananda/CS205_FinalProject/tree/sr_models/stock_predict/models)
+
+Reproducibility information about the instances are at the end of this README file.
 
 ### Sources
 
@@ -153,7 +175,7 @@ From the above, we note that even when scaling the batch size substantially, the
 
 All testing was conducted on AWS. Specification details are below:
 
-### 2- GPU Instance
+### 2 - GPU Instance
 
 - Instance: `g3.8xlarge`
 
@@ -167,6 +189,41 @@ All testing was conducted on AWS. Specification details are below:
 | L3 Cache             | 30MB                                      |
 | Main Memory          | 46GB                                      |
 | \# of GPU            | 2                                         |
+| GPU Type             | Nvidia Tesla M60                          |
+| GPU Mem. (Per Unit)  | 8GB                                       |
+| GPU Cores (Per Unit) | 2048                                      |
+| GPU Peak performance | 150GFLOPs (64 bit); 4.825TFLOPs (32 bit)  |
+
+| Software Spec.   | Details      |
+| ---------------- | ------------ |
+| Operating System | Ubuntu 18.04 |
+| Compiler         | GCC 7.5.0    |
+| Python           | 3.8.10       |
+| CUDA             | 11.0.228     |
+| CuDNN            | 8            |
+
+| Python Package                                  | Version |
+| ----------------------------------------------- | ------- |
+| `NumPy`                                         | 1.19.5  |
+| `tensorflow`                                    | 2.4.1   |
+| `keras`                                         | 2.4.3   |
+| `horovod`                                       | 0.21.3  |
+| Other libraries part of Python Standard Library | 3.8.10  |
+
+### Multi Node Instances
+
+- Instance: `g3s.xlarge`
+
+| Hardware Spec.       | Details                                   |
+| -------------------- | ----------------------------------------- |
+| Model                | Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz |
+| # of vCPU            | 4                                         |
+| Cores per CPU        | 2                                         |
+| L1 Cache             | 64KB                                      |
+| L2 Cache             | 256KB                                     |
+| L3 Cache             | 46MB                                      |
+| Main Memory          | 30.5GB                                    |
+| \# of GPU            | 1                                         |
 | GPU Type             | Nvidia Tesla M60                          |
 | GPU Mem. (Per Unit)  | 8GB                                       |
 | GPU Cores (Per Unit) | 2048                                      |
