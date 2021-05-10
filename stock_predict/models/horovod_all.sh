@@ -69,9 +69,7 @@ python3.8 -m pip install --upgrade pip
 # ^ Stuff on pip needs to be installed like this instead for Python3.8 to find them
 
 # Install tensorflow
-#python3.8 -m pip install --upgrade tensorflow
 export PATH="/home/ubuntu/.local/bin:$PATH"
-#pip3 install --upgrade tensorflow
 pip3.8 install --upgrade tensorflow
 python3.8 -c "import tensorflow as tf;print(tf.reduce_sum(tf.random.normal([1000, 1000])))"
 
@@ -82,8 +80,6 @@ sudo apt-get install -y libopenmpi-dev
 
 # Install horovod
 HOROVOD_WITH_TENSORFLOW=1 HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_MPI=1 python3.8 -m pip install --no-cache-dir horovod[tensorflow,keras]
-#HOROVOD_WITH_TENSORFLOW=1 HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_MPI=1 pip3 install --no-cache-dir horovod[tensorflow,keras]
 export PATH="/home/ubuntu/.local/bin:$PATH"
 horovodrun --check-build
-#horovodrun -np 1 -H localhost:1 python3 keras_mnist.py
 horovodrun -np 1 -H localhost:1 python3.8 keras_mnist.py

@@ -25,8 +25,20 @@ Additionally, our our data processing is a highly parallel process and an exampl
 
 By its very nature, high-resolution financial data generates significant quantities of data each minute. Because of this, we use big-data techniques to (1) create a streaming application that can run continuously, and (2) parallelize processing of the stream data to efficiently serve predictions. Because of the short time-frame of our prediction problem, making predictions in near-real time is highly important, and parallelization of the data improves scalability.
 
+
+
+## Existing Work
+
+Our project relates to two separate areas of literature. First, LSTM models have gained popularity for modeling time series data, including high-resolution financial data. We describe these connections more deeply in [Phase II: Model Training](). As an overview, Fisher and Krauss (2017) demonstrate the utility of deep learning methods in financial time series. More recently, Ghosh et al. (2020) and Lanbouri and Achchab (2020) consider LSTMs for high-frequency financial time series. Indeed, our work compares to the results from the latter, which are the most closely related. The authors in that work report RMSE on normalized S&P500 prices of 0.0046. We follow a similar approach, though consider nearly all 505 stocks of the S&P500. Predicting on individual stocks, our hold-out-set error is approximately 0.007 to 0.013. We report a range of outcomes due to the multiple parallel runs of our model. Additionally, we would like to highlight that the focus of our project is parallelism, and further model tuning would likely yield more optimal results.
+
+On the parallelization front, our model training approach follows a similar theoretical approach to Goyal et al. (2018) and Jia et al. (2018), who reduce the training time for ImageNet from 29 hours to one hour and four minutes, respectively. In both cases, such large degrees of parallelism are demonstrated for convolutional neural networks -- we seek to extend their methodology in a proof-of-concept to LSTMs as well. Unfortunately, in our case, we are unable to replicate the those authors' hardware, where they used 236 and 2048 GPUs, respectively.
+
 ## Sources
 
+- Fischer, Thomas and Christopher Krauss. 2017. "Deep learning with long short-term memory networks for financial market predictions." *FAU Discussion Papers in Economics No. 11/2017*, Friedrich-Alexander-Universität Erlangen-Nürnberg, Institute for Economics, Nürnberg, May 2017.
+- Ghosh, Pushpendu, Ariel Neufeld, and Jajati Keshari Sahoo. 2020. "Forecasting directional movements of stock prices for intraday trading using LSTM and random forests." Working paper, 2004.10178, *arXiv*. Available athttps://arxiv.org/abs/2004.10178.
+- Goyal, Priya, Piotr Dollar, Ross Girshick, Pieter Noordhuis, Lukasz Wesolowski, Aapo Kyrola, Andrew Tulloch, Yangqing Jia, Kaiming He. 2018. "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour." *arXiv*. Available at, https://arxiv.org/abs/1706.02677.
+- Jia. Xianyan, Shutao Song, Wei He, Yangzihao Wang, Haidong Rong, Feihu Zhou, Liqiang Xie, Zhenyu Guo, Yuanzhou Yang, Liwei Yu, Tiegang Chen, Guangxiao Hu, Shaohuai Shi, Xiaowen Chu. "Highly Scalable Deep Learning Training System with Mixed-Precision: Training ImageNet in Four Minutes." *arXiv*. Available at https://arxiv.org/abs/1807.11205.
 - Rumelhart, David, Geoffrey Hinton, and Ronald Williams, "Learning representations by back-propagating errors," *Nature* 323, October 1986. 
 - Werbos, Paul, "Backpropagation Through Time: What It Does and How to Do It," *Proceedings of the IEEE* 78, no. 10, October 1990.
 - Picardo, Elvis, "Understanding High-Frequency Trading Terminology," *Investopedia*, May 30, 2019. 
