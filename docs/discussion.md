@@ -20,6 +20,8 @@ To evaluate the performance of the prediction speed, we varied the number of sto
 
 With this, we saw that with a fully trained model, we were able to perform predictions real-time at approximately 0.045s/stock or 22 stocks/s on a relatively light-weight hardware. This means that we would be able to bring real-time stock prediction close to the end-user with COTS machines to increase the access to our system. Separately, depending on the time-budget requirement of the end-user, we can scale the problem size (number of stocks to predict) to meet the time budget requirement.
 
+Hence, some potential future research could include the exploration in increasing the resolution of prediction from 5 minutes ahead to 2 minutes ahead, since the time taken to predict the full set of S&P500 companies was about 20s. We can also explore the use of smaller machines for prediction, as this can help increase the access of our application to a larger number of end users, while reducing the overall operating cost. We also see a great potential in the use of Elephas for the prediction phase, as it may allow us to perform model predictions more efficiently.
+
 We also noticed that the latest data pulled from `yfinance` may contain NaN values. Hence, it is important to provision for the additional processing to handle these NaN values, which would otherwise cause problem to the prediction using the LSTM model.
 
 ## General Discussion

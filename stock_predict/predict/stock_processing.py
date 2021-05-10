@@ -1,14 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May  4 15:56:56 2021
-
-@author: junkaiong
-"""
 ## referenced Harvard CS205 Course Material Lecture C3
 ## https://harvard-iacs.github.io/2021-CS205/lectures/C3/
-
-
 from pyspark import SparkConf,SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.sql import Row,SQLContext
@@ -149,11 +140,11 @@ def predict_prices(time_in, rdd):
                 new_dict_value_list = [x_dict_value_toDict['Close'], x_dict_value_toDict['Volume']]
 
                
-    #            # drop the oldest element of the ticker's past_data_seq
+                # drop the oldest element of the ticker's past_data_seq
                 new_one_ticker_past_data_seq = past_data_seq[main_key][0][1:]
    
     
-    #            # append the newest minute update from spark rdd stream into the ticker's past_data_seq
+                # append the newest minute update from spark rdd stream into the ticker's past_data_seq
                 new_one_ticker_past_data_seq.append(new_dict_value_list)
  
     
@@ -234,14 +225,14 @@ if __name__ == '__main__':
     # read datastream from socket
     dataStream = ssc.socketTextStream("localhost",9009)
 
-    words = dataStream.map(lambda line: (line.split(">")[0], line.split(">")[1]))
+    stocks = dataStream.map(lambda line: (line.split(">")[0], line.split(">")[1]))
 
     # # print in the period
     print("datastream RDD received: ")
-    words.pprint(10)
+    stocks.pprint(10)
 
     # # do processing for each RDD generated in each interval
-    words.foreachRDD(predict_prices)
+    stocks.foreachRDD(predict_prices)
 
     # start the streaming computation
     ssc.start()

@@ -24,7 +24,3 @@ sudo mkdir /usr/local/spark
 sudo cp -r spark-3.1.1-bin-hadoop2.7/* /usr/local/spark
 export 'PATH="$PATH:/usr/local/spark/bin"' >> ~/.profile
 source ~/.profile
-
-
-## Install Horovod platform separately
-#pip3 --no-cache-dir install horovod[tensorflow,keras,spark]
