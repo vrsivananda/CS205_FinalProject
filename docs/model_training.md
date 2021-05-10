@@ -107,9 +107,7 @@ In both cases, we run two tests. The first shows the strong scaling of each appr
 
 #### Single Node, Multiple GPU per Node
 
-**ADD PLOTS** & Discussion
-
-
+![mulitgpu_speedup](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/figures/multi_gpu_speedup.png)
 
 *Figure 3: Accuracy Results*
 
