@@ -12,7 +12,7 @@ In this project, we implement parallelization across the pipeline for data proce
 
 ## Logistics
 
-A project table of contents can be found below. Additionally, all software for this project can be found in the `stock_predict` directory of this repository. While we have aggregated instructions for running our software [here](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/instructions.md), each subdirectory of the software section contains directory-specific information for running our software. Finally, we plan to maintain our data and trained model used for prediction in the group S3 bucket. We are happy to share this for full-transparency, as our data collection methodology will pull the most up-to-date data.
+A project table of contents can be found below. Additionally, all software for this project can be found in the `stock_predict` directory of this repository. While we have aggregated instructions for running our software [here](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/instructions.md), each subdirectory of the software section contains directory-specific information for running our software. Additionally, each the three phases described below contains specific information regarding the AWS instances and computing infrastructure used in each respective phase. Finally, we plan to maintain our data and trained model used for prediction in the group S3 bucket. We are happy to share this for full-transparency, as our data collection methodology will pull the most up-to-date data.
 
 ## TOC
 
@@ -21,7 +21,6 @@ A project table of contents can be found below. Additionally, all software for t
 4. [Phase II: Model Training](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/model_training.md)
 5. [Phase III: Online Prediction](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/prediction.md)
 6. [Discussion](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/discussion.md)
-7. Reproducibility Info
 8. [Software Instructions](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/instructions.md)
 9. [Sources](https://github.com/vrsivananda/CS205_FinalProject/blob/master/docs/aggregated_sources.md)
 10. [Project Presentations](https://github.com/vrsivananda/CS205_FinalProject/blob/master/presentations/)
